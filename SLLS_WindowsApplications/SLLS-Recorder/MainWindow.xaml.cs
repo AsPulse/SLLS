@@ -1,28 +1,26 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
-namespace SLLS_Recorder
-{
+
+namespace SLLS_Recorder {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
     public partial class MainWindow : Window
     {
+        readonly Camera camera;
         public MainWindow()
         {
             InitializeComponent();
+
+            camera = new Camera();
+            camera.CameraImageRefreshed += Camera_ImageRefreshed;
+        }
+
+        private void Camera_ImageRefreshed(object sender, WriteableBitmap bitmap) {
+            Dispatcher.Invoke(() => {
+                CameraViewer.Source = bitmap;
+            });
         }
     }
 }
