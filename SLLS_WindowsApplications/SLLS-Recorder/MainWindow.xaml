@@ -7,7 +7,14 @@
         mc:Ignorable="d"
         Title="SLLS-Recorder" Height="450" Width="800" Closing="Window_Closing">
     <Grid>
-        <Viewbox Stretch="Uniform">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition/>
+        </Grid.RowDefinitions>
+        <Grid>
+            <Label x:Name="PlaybackInfo" Content="PlaybackInfo: (none)"></Label>
+        </Grid>
+        <Viewbox Stretch="Uniform" Grid.Row="1">
             <Image x:Name="CameraViewer" Width="1920" Height="1080"/>
         </Viewbox>
     </Grid>
