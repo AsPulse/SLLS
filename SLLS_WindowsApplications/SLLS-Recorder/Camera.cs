@@ -21,10 +21,10 @@ namespace SLLS_Recorder {
 
         private readonly int width = 1920;
         private readonly int height = 1080;
-        private readonly int fps = 30;
+        private readonly int fps = 24;
 
         private bool recording = false;
-        private readonly int frameLength = 200;
+        private readonly int frameLength = 240;
         private int renderedFrame = 0;
         private int chunkId = 0;
 
@@ -65,13 +65,17 @@ namespace SLLS_Recorder {
                  * Recording
                  */
                 if (recording) {
-                    if (renderedFrame % frameLength == 0) {
+                    if (renderedFrame == 0 || renderedFrame >= frameLength) {
                         chunkId++;
+                        Debug.WriteLine(renderedFrame);
+                        renderedFrame = 0;
+                        sw.Restart();
                         vw?.Dispose();
-                        vw = new(string.Format("./data/{0}.avi", chunkId), FourCC.MJPG, fps, new Size(width, height));
+                        vw = new(string.Format("./data/{0}.mp4", chunkId), FourCC.H264, fps, new Size(width, height));
+
                     }
                     int nowFrame = (int) Math.Round(sw.Elapsed.TotalSeconds * fps);
-                    while(renderedFrame <= nowFrame) {
+                    while(renderedFrame <= nowFrame && renderedFrame < frameLength) {
                         vw?.Write(frame);
                         renderedFrame++;
                     }
@@ -81,6 +85,7 @@ namespace SLLS_Recorder {
 
         public void Dispose() {
             live = false;
+            stopRecord();
         }
         
         public void startRecord() {
@@ -88,6 +93,13 @@ namespace SLLS_Recorder {
             renderedFrame = 0;
             chunkId = 0;
             sw.Restart();
+        }
+
+        public void stopRecord() {
+            recording = false;
+            vw?.Dispose();
+            renderedFrame = 0;
+            chunkId = 0;
         }
     }
 }
