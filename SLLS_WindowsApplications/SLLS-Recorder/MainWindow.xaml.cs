@@ -18,9 +18,11 @@ namespace SLLS_Recorder {
         }
 
         private void Camera_ImageRefreshed(object sender, WriteableBitmap bitmap) {
-            Dispatcher.Invoke(() => {
-                CameraViewer.Source = bitmap;
-            });
+            CameraViewer.Source = bitmap;
+        }
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) {
+            camera.Dispose();
         }
     }
 }

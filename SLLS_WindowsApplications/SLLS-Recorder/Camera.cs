@@ -10,10 +10,12 @@ using OpenCvSharp.WpfExtensions;
 using Window = OpenCvSharp.Window;
 
 namespace SLLS_Recorder {
-    internal class Camera {
+    internal class Camera : IDisposable {
 
         public delegate void CameraImageRefreshedEventHandler(object sender, WriteableBitmap bitmap);
         public event CameraImageRefreshedEventHandler? CameraImageRefreshed;
+
+        private bool live = true;
 
         public Camera() {
             Task.Run(Worker_DoWork);
@@ -29,7 +31,7 @@ namespace SLLS_Recorder {
                 MessageBox.Show("Can't use camera.");
                 return;
             }
-            while (true) {
+            while (live) {
                 vc.Read(frame);
                 if (frame.Empty()) {
                     MessageBox.Show("Mat is empty.");
@@ -37,8 +39,14 @@ namespace SLLS_Recorder {
                 }
                 WriteableBitmap bmp = frame.ToWriteableBitmap();
                 bmp.Freeze();
-                CameraImageRefreshed?.Invoke(this, bmp);
+                Application.Current.Dispatcher.Invoke(() => {
+                    CameraImageRefreshed?.Invoke(this, bmp);
+                });
             }
+        }
+
+        public void Dispose() {
+            live = false;
         }
 
     }

@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:SLLS_Recorder"
         mc:Ignorable="d"
-        Title="SLLS-Recorder" Height="450" Width="800">
+        Title="SLLS-Recorder" Height="450" Width="800" Closing="Window_Closing">
     <Grid>
         <Viewbox Stretch="Uniform">
             <Image x:Name="CameraViewer" Width="1920" Height="1080"/>
