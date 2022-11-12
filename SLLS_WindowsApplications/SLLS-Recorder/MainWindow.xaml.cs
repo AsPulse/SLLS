@@ -28,11 +28,16 @@ namespace SLLS_Recorder {
 
         private void Camera_ImageRefreshed(object sender, WriteableBitmap bitmap) {
             CameraViewer.Source = bitmap;
-            PlaybackInfo.Content = string.Format("PlaybackInfo: fps={0}", Math.Round(++frames / time.Elapsed.TotalSeconds, 1));
-            if (time.ElapsedMilliseconds > 1000) {
-                frames = 0;
-                time.Restart();
+
+            frames++;
+            if(frames % 3 == 0) {
+                PlaybackInfo.Content = string.Format("PlaybackInfo: fps={0}", Math.Round(frames / time.Elapsed.TotalSeconds, 1));
+                if (time.ElapsedMilliseconds > 1000) {
+                    frames = 0;
+                    time.Restart();
+                }
             }
+            
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) {
