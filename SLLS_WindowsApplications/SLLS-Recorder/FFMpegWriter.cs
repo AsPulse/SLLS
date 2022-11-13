@@ -30,14 +30,14 @@ namespace SLLS_Recorder {
             OutputPath = Path.GetFullPath(outputPath);
 
             Proc = new Process();
-            Proc.StartInfo.FileName = "ffmpeg";
+            Proc.StartInfo.FileName = "./ffmpeg.exe";
             Proc.StartInfo.Arguments =
                 string.Format(
                     "-y -f rawvideo -pixel_format bgr24 -video_size {0}x{1} -framerate {2}" + 
-                    " -i - -an -vcodec h264_nvenc -pix_fmt yuv420p" + 
+                    " -i - -an -vcodec libx264 -pix_fmt yuv420p" + 
                     " -b 5M -maxrate 6M -bufsize 6M" +
                     " -movflags +faststart -flags cgop -qmin 10" +
-                    ZeroLatencyGPU +
+                    ZeroLatencyCPU +
                     " {3}",
                     width, height, framerate, OutputPath
                 );
