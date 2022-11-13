@@ -32,6 +32,7 @@ namespace SLLS_Recorder {
         private int dropFrames = 0;
 
         private FFMpegWriterController vw;
+        private VideoCapture? vc;
         readonly Stopwatch sw = new();
 
         public Camera() {
@@ -41,28 +42,31 @@ namespace SLLS_Recorder {
             Task.Run(Worker_DoWork);
             Task.Run(async () => {
                 await Task.Delay(3000);
-                StartRecord();
+                //StartRecord();
             });
         }
 
-        private void Worker_DoWork() {
-            VideoCapture vc = new(4) {
+        public void SelectCamera(int id) {
+            vc = null;
+            vc = new(id) {
                 FrameWidth = width,
                 FrameHeight = height
             };
 
-            Mat frame = new(width, height, MatType.CV_8UC3);
             if (!vc.IsOpened()) {
                 MessageBox.Show("Can't use camera.");
                 return;
             }
+        }
+
+        private void Worker_DoWork() {
+
+            Mat frame = new(width, height, MatType.CV_8UC3);
 
             while (live) {
+                if (vc == null) continue;
                 vc.Read(frame);
-                if (frame.Empty()) {
-                    MessageBox.Show("Mat is empty.");
-                    break;
-                }
+                if (frame.Empty()) continue;
                 WriteableBitmap bmp = frame.ToWriteableBitmap();
                 bmp.Freeze();
                 Application.Current.Dispatcher.Invoke(() => {
