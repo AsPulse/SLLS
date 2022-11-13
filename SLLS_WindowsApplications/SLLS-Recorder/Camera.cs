@@ -13,16 +13,28 @@ using OpenCvSharp.WpfExtensions;
 using Size = OpenCvSharp.Size;
 
 namespace SLLS_Recorder {
+    enum RecordingStatus {
+        READY,
+        PREPARING_TO_START,
+        RECORDING,
+        PREPARING_TO_FINISH
+    };
+
     internal class Camera : IDisposable {
 
         public delegate void CameraImageRefreshedEventHandler(object sender, WriteableBitmap bitmap);
         public event CameraImageRefreshedEventHandler? CameraImageRefreshed;
+
+        public delegate void StatusChangedEventHandler(object sender, RecordingStatus status);
+        public event StatusChangedEventHandler? StatusChanged;
 
         private bool live = true;
 
         private readonly int width = 1920;
         private readonly int height = 1080;
         private readonly int fps = 24;
+
+        public RecordingStatus status = RecordingStatus.READY;
 
         private bool recording = false;
         private readonly int chunkLength = 240;
@@ -40,10 +52,6 @@ namespace SLLS_Recorder {
             new FFMpegWriter(fps, width, height, string.Format("./data/{0}.mp4", chunkId))
         );
             Task.Run(Worker_DoWork);
-            Task.Run(async () => {
-                await Task.Delay(3000);
-                //StartRecord();
-            });
         }
 
         public void SelectCamera(int id) {
@@ -104,8 +112,18 @@ namespace SLLS_Recorder {
             live = false;
             StopRecord().Wait();
         }
+
+        private void SetStatus(RecordingStatus newStatus) {
+            status = newStatus;
+            Application.Current.Dispatcher.Invoke(() => {
+                StatusChanged?.Invoke(this, newStatus);
+            });
+        }
+
         
         public void StartRecord() {
+            if (status != RecordingStatus.READY) return;
+            SetStatus(RecordingStatus.PREPARING_TO_START);
             chunkId = 0;
             renderedFrame = 0;
             dropFrames = 0;
@@ -114,10 +132,13 @@ namespace SLLS_Recorder {
                 sw.Restart();
                 recording = true;
                 Debug.WriteLine("Recording Start");
+                SetStatus(RecordingStatus.RECORDING);
             });
         }
 
         public Task StopRecord() {
+            if (status != RecordingStatus.RECORDING) return Task.CompletedTask;
+            SetStatus(RecordingStatus.PREPARING_TO_FINISH);
             recording = false;
             renderedFrame = 0;
             int finishChunk = chunkId;
@@ -125,6 +146,7 @@ namespace SLLS_Recorder {
             return Task.Run(async () => {
                 await vw.RenderChunk(finishChunk);
                 await vw.FreeAllChunk();
+                SetStatus(RecordingStatus.READY);
             });
         }
     }

@@ -23,6 +23,7 @@
             <Label Content="SLLS - Recorder" HorizontalAlignment="Center" FontWeight="Bold" />
             <StackPanel Grid.Row="1">
                 <ComboBox x:Name="CameraSelection" Grid.Row="1" SelectionChanged="CameraSelection_SelectionChanged" />
+                <Button x:Name="RecordingButton" Padding="1,5,1,5" Margin="0,5,0,0" Content="録画" Click="RecodingButton_Click" />
             </StackPanel>
         </Grid>
     </Grid>
