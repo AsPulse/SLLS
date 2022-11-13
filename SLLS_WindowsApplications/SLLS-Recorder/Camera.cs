@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
@@ -24,18 +25,24 @@ namespace SLLS_Recorder {
         private readonly int fps = 24;
 
         private bool recording = false;
-        private readonly int frameLength = 240;
+        private readonly int chunkLength = 240;
         private int renderedFrame = 0;
         private int chunkId = 0;
 
         private int dropFrames = 0;
 
-        private VideoWriter? vw;
+        private FFMpegWriterController vw;
         readonly Stopwatch sw = new();
 
         public Camera() {
+            vw = new(chunkId =>
+            new FFMpegWriter(fps, width, height, string.Format("./data/{0}.mp4", chunkId))
+        );
             Task.Run(Worker_DoWork);
-            startRecord();
+            Task.Run(async () => {
+                await Task.Delay(3000);
+                StartRecord();
+            });
         }
 
         private void Worker_DoWork() {
@@ -44,7 +51,7 @@ namespace SLLS_Recorder {
                 FrameHeight = height
             };
 
-            Mat frame = new();
+            Mat frame = new(width, height, MatType.CV_8UC3);
             if (!vc.IsOpened()) {
                 MessageBox.Show("Can't use camera.");
                 return;
@@ -66,46 +73,55 @@ namespace SLLS_Recorder {
                  * Recording
                  */
                 if (recording) {
-                    if (renderedFrame == 0 || renderedFrame >= frameLength) {
-                        chunkId++;
-                        renderedFrame = 0;
-                        sw.Restart();
-                        vw?.Dispose();
-                        vw = new(string.Format("./data/{0}.mp4", chunkId), FourCC.H264, fps, new Size(width, height));
-
-                    }
                     int nowFrame = (int) Math.Round(sw.Elapsed.TotalSeconds * fps);
                     int skipped = nowFrame - renderedFrame - 1;
                     if (skipped > 0) {
                         dropFrames += skipped;
-
+                        Debug.WriteLine(string.Format("Dropped: {0} ( of {1} )",skipped, dropFrames));
                     }
-                    Debug.WriteLine(String.Format("Dropped: {0}", dropFrames));
-                    while(renderedFrame < nowFrame && renderedFrame < frameLength) {
-                        vw?.Write(frame);
+                    while(renderedFrame < nowFrame && renderedFrame < chunkLength) {
+                        vw.GetVw(chunkId).Result.SetFrame(renderedFrame, frame);
                         renderedFrame++;
+                    }
+                    if (renderedFrame >= chunkLength) {
+                        vw.RenderChunk(chunkId++);
+                        Task.Run(() => {
+                            Enumerable.Range(chunkId, 5).ToList().ForEach(x => vw.Ready(x));
+                        });
+                        renderedFrame = 0;
+                        sw.Restart();
                     }
                 }
             }
         }
 
         public void Dispose() {
+            if (!live) return;
             live = false;
-            stopRecord();
+            StopRecord().Wait();
         }
         
-        public void startRecord() {
-            recording = true;
-            renderedFrame = 0;
+        public void StartRecord() {
             chunkId = 0;
-            sw.Restart();
+            renderedFrame = 0;
+            dropFrames = 0;
+            Task.Run(async () => {
+                await Task.WhenAll(Enumerable.Range(chunkId, 5).Select(x => vw.GetVw(x)));
+                sw.Restart();
+                recording = true;
+                Debug.WriteLine("Recording Start");
+            });
         }
 
-        public void stopRecord() {
+        public Task StopRecord() {
             recording = false;
-            vw?.Dispose();
             renderedFrame = 0;
+            int finishChunk = chunkId;
             chunkId = 0;
+            return Task.Run(async () => {
+                await vw.RenderChunk(finishChunk);
+                await vw.FreeAllChunk();
+            });
         }
     }
 }
