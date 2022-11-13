@@ -21,6 +21,9 @@ namespace SLLS_Recorder {
         public Dictionary<int, Mat> matTable = new();
 
         public Task Appender = Task.CompletedTask;
+
+        public static string ZeroLatencyCPU = " -tune fastdecode,zerolatency";
+        public static string ZeroLatencyGPU = " -delay 0 -zerolatency 1 -preset llhq -tune ull";
         public FFMpegWriter(int framerate, int width, int height, string outputPath) {
             Width = width;
             Height = height;
@@ -32,17 +35,15 @@ namespace SLLS_Recorder {
                 string.Format(
                     "-y -f rawvideo -pixel_format bgr24 -video_size {0}x{1} -framerate {2}" + 
                     " -i - -an -vcodec h264_nvenc -pix_fmt yuv420p" + 
-                    " -crf 20 -maxrate 8M -bufsize 8M" +
+                    " -b 5M -maxrate 6M -bufsize 6M" +
                     " -movflags +faststart -flags cgop -qmin 10" +
-                    " -b_strategy 0 -bf 0 -keyint_min 1 -force_key_frames expr:gte(n,n_forced*12)" + 
+                    ZeroLatencyGPU +
                     " {3}",
                     width, height, framerate, OutputPath
                 );
             Proc.StartInfo.CreateNoWindow = true;
             Proc.StartInfo.UseShellExecute = false;
             Proc.StartInfo.RedirectStandardInput = true;
-            Proc.StartInfo.RedirectStandardOutput = true;
-            Proc.StartInfo.RedirectStandardError = true;
             Proc.Start();
             sw = Proc.StandardInput;
         }
@@ -52,13 +53,7 @@ namespace SLLS_Recorder {
                 int size = Width * Height * 3;
                 byte[] buffer = new byte[size];
                 Marshal.Copy(m.Data, buffer, 0, size);
-                try {
-                    sw.BaseStream.Write(buffer);
-                } catch {
-                    Debug.WriteLine(Proc.StandardOutput.ReadToEnd());
-                    Debug.WriteLine(Proc.StandardError.ReadToEnd());
-                    throw;
-                }
+                sw.BaseStream.Write(buffer);
                 sw.Flush();
             });
         }
@@ -92,8 +87,6 @@ namespace SLLS_Recorder {
                 await Proc.WaitForExitAsync();
                 Proc.Close();
                 Debug.WriteLine(string.Format("Encoded! ({0}ms)", renderTime.ElapsedMilliseconds));
-                //Debug.WriteLine(Proc.StandardOutput.ReadToEnd());
-                //Debug.WriteLine(Proc.StandardError.ReadToEnd());
             });
         }
 
