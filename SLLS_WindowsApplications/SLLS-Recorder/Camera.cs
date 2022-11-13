@@ -28,9 +28,10 @@ namespace SLLS_Recorder {
         private int renderedFrame = 0;
         private int chunkId = 0;
 
-        private VideoWriter? vw;
+        private int dropFrames = 0;
 
-        Stopwatch sw = new();
+        private VideoWriter? vw;
+        readonly Stopwatch sw = new();
 
         public Camera() {
             Task.Run(Worker_DoWork);
@@ -67,7 +68,6 @@ namespace SLLS_Recorder {
                 if (recording) {
                     if (renderedFrame == 0 || renderedFrame >= frameLength) {
                         chunkId++;
-                        Debug.WriteLine(renderedFrame);
                         renderedFrame = 0;
                         sw.Restart();
                         vw?.Dispose();
@@ -75,7 +75,13 @@ namespace SLLS_Recorder {
 
                     }
                     int nowFrame = (int) Math.Round(sw.Elapsed.TotalSeconds * fps);
-                    while(renderedFrame <= nowFrame && renderedFrame < frameLength) {
+                    int skipped = nowFrame - renderedFrame - 1;
+                    if (skipped > 0) {
+                        dropFrames += skipped;
+
+                    }
+                    Debug.WriteLine(String.Format("Dropped: {0}", dropFrames));
+                    while(renderedFrame < nowFrame && renderedFrame < frameLength) {
                         vw?.Write(frame);
                         renderedFrame++;
                     }
