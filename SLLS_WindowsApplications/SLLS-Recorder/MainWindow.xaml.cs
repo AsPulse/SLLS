@@ -50,8 +50,8 @@ namespace SLLS_Recorder {
             }
         }
 
-        private void Camera_ImageRefreshed(object sender, WriteableBitmap bitmap) {
-            CameraViewer.Source = bitmap;
+        private void Camera_ImageRefreshed(object sender) {
+            FrameCounter.Content = string.Format("Frames: {0} dropped / {1} rendered", camera.dropFrames, camera.renderedFrame);
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) {

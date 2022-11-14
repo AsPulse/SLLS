@@ -22,7 +22,7 @@ namespace SLLS_Recorder {
 
     internal class Camera : IDisposable {
 
-        public delegate void CameraImageRefreshedEventHandler(object sender, WriteableBitmap bitmap);
+        public delegate void CameraImageRefreshedEventHandler(object sender);
         public event CameraImageRefreshedEventHandler? CameraImageRefreshed;
 
         public delegate void StatusChangedEventHandler(object sender, RecordingStatus status);
@@ -38,14 +38,15 @@ namespace SLLS_Recorder {
 
         private bool recording = false;
         private readonly int chunkLength = 240;
-        private int renderedFrame = 0;
-        private int chunkId = 0;
+        public int renderedFrame = 0;
+        public int chunkId = 0;
 
-        private int dropFrames = 0;
+        public int dropFrames = 0;
 
         private FFMpegWriterController vw;
         private VideoCapture? vc;
         readonly Stopwatch sw = new();
+        public WriteableBitmap bmp = new WriteableBitmap();
 
         public Camera() {
             vw = new(chunkId =>
@@ -75,10 +76,9 @@ namespace SLLS_Recorder {
                 if (vc == null) continue;
                 vc.Read(frame);
                 if (frame.Empty()) continue;
-                WriteableBitmap bmp = frame.ToWriteableBitmap();
-                bmp.Freeze();
+                WriteableBitmapConverter.ToWriteableBitmap(frame, bmp);
                 Application.Current.Dispatcher.Invoke(() => {
-                    CameraImageRefreshed?.Invoke(this, bmp);
+                    CameraImageRefreshed?.Invoke(this);
                 });
 
                 /**
@@ -124,7 +124,7 @@ namespace SLLS_Recorder {
         public void StartRecord() {
             if (status != RecordingStatus.READY) return;
             SetStatus(RecordingStatus.PREPARING_TO_START);
-            chunkId = 0;
+            chunkId++;
             renderedFrame = 0;
             dropFrames = 0;
             Task.Run(async () => {

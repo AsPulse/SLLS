@@ -34,10 +34,10 @@ namespace SLLS_Recorder {
             Proc.StartInfo.Arguments =
                 string.Format(
                     "-y -f rawvideo -pixel_format bgr24 -video_size {0}x{1} -framerate {2}" + 
-                    " -i - -an -vcodec libx264 -pix_fmt yuv420p" + 
+                    " -i - -an -vcodec h264_nvenc -pix_fmt yuv420p" + 
                     " -b 5M -maxrate 6M -bufsize 6M" +
                     " -movflags +faststart -flags cgop -qmin 10" +
-                    ZeroLatencyCPU +
+                    ZeroLatencyGPU +
                     " {3}",
                     width, height, framerate, OutputPath
                 );
@@ -81,8 +81,8 @@ namespace SLLS_Recorder {
 
         public Task Render() {
             return Task.Run(async () => {
-                await Appender;
                 Stopwatch renderTime = Stopwatch.StartNew();
+                await Appender;
                 sw.Close();
                 await Proc.WaitForExitAsync();
                 Proc.Close();
