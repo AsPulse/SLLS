@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using OpenCvSharp;
@@ -37,21 +38,22 @@ namespace SLLS_Recorder {
         public RecordingStatus status = RecordingStatus.READY;
 
         private bool recording = false;
-        private readonly int chunkLength = 240;
+        public readonly int chunkLength = 240;
         public int renderedFrame = 0;
-        public int chunkId = 0;
+        public int chunkId = -1;
 
         public int dropFrames = 0;
 
         private FFMpegWriterController vw;
         private VideoCapture? vc;
         readonly Stopwatch sw = new();
-        public WriteableBitmap bmp = new WriteableBitmap();
+        public WriteableBitmap bmp;
 
         public Camera() {
             vw = new(chunkId =>
-            new FFMpegWriter(fps, width, height, string.Format("./data/{0}.mp4", chunkId))
-        );
+                new FFMpegWriter(fps, width, height, string.Format("./data/{0}.mp4", chunkId))
+            );
+            bmp = new WriteableBitmap(width, height, 96, 96, PixelFormats.Bgr24, null);
             Task.Run(Worker_DoWork);
         }
 
@@ -76,8 +78,8 @@ namespace SLLS_Recorder {
                 if (vc == null) continue;
                 vc.Read(frame);
                 if (frame.Empty()) continue;
-                WriteableBitmapConverter.ToWriteableBitmap(frame, bmp);
                 Application.Current.Dispatcher.Invoke(() => {
+                    WriteableBitmapConverter.ToWriteableBitmap(frame, bmp);
                     CameraImageRefreshed?.Invoke(this);
                 });
 
@@ -142,7 +144,6 @@ namespace SLLS_Recorder {
             recording = false;
             renderedFrame = 0;
             int finishChunk = chunkId;
-            chunkId = 0;
             return Task.Run(async () => {
                 await vw.RenderChunk(finishChunk);
                 await vw.FreeAllChunk();

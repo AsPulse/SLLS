@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media.Imaging;
 using static OpenCvSharp.Stitcher;
 
@@ -22,6 +23,7 @@ namespace SLLS_Recorder {
             camera = new Camera();
             camera.CameraImageRefreshed += Camera_ImageRefreshed;
             camera.StatusChanged += Camera_StatusChanged;
+            CameraViewer.Source = camera.bmp;
 
             List<string> cameras = new List<DsDevice>(DsDevice.GetDevicesOfCat(FilterCategory.VideoInputDevice))
                 .Select(v => v.Name)
@@ -51,7 +53,8 @@ namespace SLLS_Recorder {
         }
 
         private void Camera_ImageRefreshed(object sender) {
-            FrameCounter.Content = string.Format("Frames: {0} dropped / {1} rendered", camera.dropFrames, camera.renderedFrame);
+            FrameCounter.Content = string.Format("Frames: {0} / {1} frames", camera.renderedFrame, camera.chunkLength);
+            DroppedCounter.Content = string.Format("Dropped: {0} frames", camera.dropFrames);
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) {
