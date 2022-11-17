@@ -77,5 +77,9 @@ namespace SLLS_Recorder {
                     break;
             }
         }
+
+        public void ListboxLog(string content) {
+            Logger.Items.Insert(0, content);
+        }
     }
 }
