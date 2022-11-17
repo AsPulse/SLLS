@@ -23,6 +23,8 @@ namespace SLLS_Recorder {
             camera = new Camera();
             camera.CameraImageRefreshed += Camera_ImageRefreshed;
             camera.StatusChanged += Camera_StatusChanged;
+            Camera_StatusChanged(camera, camera.status);
+
             CameraViewer.Source = camera.bmp;
 
             List<string> cameras = new List<DsDevice>(DsDevice.GetDevicesOfCat(FilterCategory.VideoInputDevice))
@@ -38,16 +40,16 @@ namespace SLLS_Recorder {
             RecordingButton.IsEnabled = status == RecordingStatus.READY || status == RecordingStatus.RECORDING;
             switch (status) {
                 case RecordingStatus.READY:
-                    RecordingButton.Content = "録画";
+                    RecordingButton.Content = "Start Transmission";
                     break;
                 case RecordingStatus.RECORDING:
-                    RecordingButton.Content = "停止 (録画中...)";
+                    RecordingButton.Content = "Transmitting (click to stop)";
                     break;
                 case RecordingStatus.PREPARING_TO_START:
-                    RecordingButton.Content = "録画開始処理中";
+                    RecordingButton.Content = "Start processing...";
                     break;
                 case RecordingStatus.PREPARING_TO_FINISH:
-                    RecordingButton.Content = "録画停止処理中";
+                    RecordingButton.Content = "Stop processing...";
                     break;
             }
         }
