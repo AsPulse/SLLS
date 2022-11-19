@@ -86,22 +86,27 @@ namespace SLLS_Recorder {
 
         private void ListenControl_Click(object sender, RoutedEventArgs e) {
             if(Server == null) {
-                Listen.Content = "Stop";
-                PortNumber.IsEnabled = false;
-                //Server Start
-                Server = new Server(
-                    int.Parse(PortNumber.Text),
-                    s => {
-                        Dispatcher.Invoke(() => ListboxLog(s));
-                    },
-                    _ => {
-                        Dispatcher.Invoke(() => {
-                            Listen.Content = "Listen";
-                            PortNumber.IsEnabled = true;
-                            Server = null;
-                        });
-                    }
-                );
+                int port = -1;
+                if(int.TryParse(PortNumber.Text, out port)) {
+                    Listen.Content = "Stop";
+                    PortNumber.IsEnabled = false;
+                    //Server Start
+                    Server = new Server(
+                        port,
+                        s => {
+                            Dispatcher.Invoke(() => ListboxLog(s));
+                        },
+                        _ => {
+                            Dispatcher.Invoke(() => {
+                                Listen.Content = "Listen";
+                                PortNumber.IsEnabled = true;
+                                Server = null;
+                            });
+                        }
+                    );
+                } else {
+                    ListboxLog("Unable Port Number");
+                }
             } else {
                 Server.Dispose();
             }

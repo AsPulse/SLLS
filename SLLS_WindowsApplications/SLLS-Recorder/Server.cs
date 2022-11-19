@@ -17,12 +17,15 @@ namespace SLLS_Recorder {
 
         public Action<string>? logger;
 
+        public int Port { get; }
+
         public delegate void DisposeEventHandler(object sender);
         public event DisposeEventHandler? OnDispose;
 
 
         public Server(int port, Action<string> logger, Action<object> initialDisposer) {
             this.logger = logger;
+            Port = port;
             if(initialDisposer != null) { 
                 OnDispose += o => initialDisposer.Invoke(o);
             }
@@ -42,7 +45,7 @@ namespace SLLS_Recorder {
 
 
         private Task AsyncAcceptWaitLoop() {
-            logger?.Invoke("Server Listening...");
+            logger?.Invoke($"Server Listening on TCP/{Port}...");
             return Task.Run(() => {
                 while (Listener != null && Listener.Active) {
                     try {
