@@ -16,6 +16,7 @@ namespace SLLS_Recorder {
     public partial class MainWindow : Window
     {
         readonly Camera camera;
+        Server? Server = null;
         public MainWindow()
         {
             InitializeComponent();
@@ -61,6 +62,7 @@ namespace SLLS_Recorder {
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) {
             camera.Dispose();
+            Server?.Dispose();
         }
 
         private void CameraSelection_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e) {
@@ -80,6 +82,29 @@ namespace SLLS_Recorder {
 
         public void ListboxLog(string content) {
             Logger.Items.Insert(0, content);
+        }
+
+        private void ListenControl_Click(object sender, RoutedEventArgs e) {
+            if(Server == null) {
+                Listen.Content = "Stop";
+                PortNumber.IsEnabled = false;
+                //Server Start
+                Server = new Server(
+                    int.Parse(PortNumber.Text),
+                    s => {
+                        Dispatcher.Invoke(() => ListboxLog(s));
+                    },
+                    _ => {
+                        Dispatcher.Invoke(() => {
+                            Listen.Content = "Listen";
+                            PortNumber.IsEnabled = true;
+                            Server = null;
+                        });
+                    }
+                );
+            } else {
+                Server.Dispose();
+            }
         }
     }
 }

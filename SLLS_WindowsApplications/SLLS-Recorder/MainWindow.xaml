@@ -38,8 +38,8 @@
                         <ColumnDefinition/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <TextBox Grid.Column="1" Padding="3,3,3,3" HorizontalContentAlignment="Center" ></TextBox>
-                    <Button Grid.Column="2" Padding="8,4,8,4" Margin="3,0,0,0">Listen</Button>
+                    <TextBox x:Name="PortNumber" Grid.Column="1" Padding="3,3,3,3" HorizontalContentAlignment="Center" ></TextBox>
+                    <Button x:Name="Listen" Grid.Column="2" Padding="8,4,8,4" Margin="3,0,0,0" Click="ListenControl_Click">Listen</Button>
                 </Grid>
             </StackPanel>
             <ListBox x:Name="Logger" Grid.Row="3" Margin="5,5,5,5"></ListBox>
