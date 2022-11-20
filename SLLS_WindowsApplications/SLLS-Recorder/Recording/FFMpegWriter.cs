@@ -16,6 +16,8 @@ namespace SLLS_Recorder.Recording {
         public int Height { get; }
 
         public string OutputPath { get; }
+
+        private readonly Camera camera;
         public readonly long? Id;
 
         private int AppendedFrames = 0;
@@ -49,6 +51,7 @@ namespace SLLS_Recorder.Recording {
             Proc.StartInfo.RedirectStandardInput = true;
             Proc.Start();
             sw = Proc.StandardInput;
+            this.camera = camera;
             Id = id;
         }
 
@@ -92,39 +95,33 @@ namespace SLLS_Recorder.Recording {
            );
         }
 
-        public Task<Chunk?> Render()
+        public async Task<Chunk?> Render()
         {
-            return Task.Run(async () =>
-            {
-                Chunk? chunk = null;
-                Stopwatch renderTime = Stopwatch.StartNew();
-                await Appender;
-                sw.Close();
-                await Proc.WaitForExitAsync();
-                if (File.Exists(OutputPath)) {
-                    if (Id != null) {
-                        using FileStream sr = File.OpenRead(OutputPath);
-                        long length = sr.Length;
-                        byte[] bytes = new byte[length];
-                        sr.Read(bytes, 0, (int)length);
-                        chunk = new Chunk((long)Id, bytes, AppendedFrames);
-                    }
-                    File.Delete(OutputPath);
+            Chunk? chunk = null;
+            Stopwatch renderTime = Stopwatch.StartNew();
+            await Appender;
+            sw.Close();
+            await Proc.WaitForExitAsync();
+            if (File.Exists(OutputPath)) {
+                if (Id != null) {
+                    using FileStream sr = File.OpenRead(OutputPath);
+                    long length = sr.Length;
+                    byte[] bytes = new byte[length];
+                    sr.Read(bytes, 0, (int)length);
+                    chunk = new Chunk((long)Id, bytes, AppendedFrames / camera.fps * 1000);
                 }
-                Proc.Close();
-                Debug.WriteLine(string.Format("Encoded! ({0}ms)", renderTime.ElapsedMilliseconds));
-                return chunk;
-            });
+                File.Delete(OutputPath);
+            }
+            Proc.Close();
+            Debug.WriteLine(string.Format("Encoded! ({0}ms)", renderTime.ElapsedMilliseconds));
+            return chunk;
         }
 
-        public Task Free()
+        public async Task Free()
         {
-            return Task.Run(async () =>
-            {
-                Proc.Kill();
-                await Task.Delay(1000);
-                if (File.Exists(OutputPath)) File.Delete(OutputPath);
-            });
+            Proc.Kill();
+            await Task.Delay(1000);
+            if (File.Exists(OutputPath)) File.Delete(OutputPath);
         }
     }
 }

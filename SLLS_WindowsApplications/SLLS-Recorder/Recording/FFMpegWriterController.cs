@@ -31,29 +31,23 @@ namespace SLLS_Recorder.Recording {
             return Writers[chunkId];
         }
 
-        public Task<Chunk?> RenderChunk(int chunkId)
+        public async Task<Chunk?> RenderChunk(int chunkId)
         {
-            return Task.Run(async () =>
-            {
-                if (!Writers.ContainsKey(chunkId)) return null;
-                FFMpegWriter target = await Writers[chunkId];
-                Chunk? c = await target.Render();
-                Writers.Remove(chunkId);
-                ReportStack();
-                return c;
-            });
+            if (!Writers.ContainsKey(chunkId)) return null;
+            FFMpegWriter target = await Writers[chunkId];
+            Chunk? c = await target.Render();
+            Writers.Remove(chunkId);
+            ReportStack();
+            return c;
         }
 
-        public Task FreeChunk(int chunkId)
+        public async Task FreeChunk(int chunkId)
         {
-            return Task.Run(async () =>
-            {
-                if (!Writers.ContainsKey(chunkId)) return;
-                FFMpegWriter target = await Writers[chunkId];
-                await target.Free();
-                Writers.Remove(chunkId);
-                ReportStack();
-            });
+            if (!Writers.ContainsKey(chunkId)) return;
+            FFMpegWriter target = await Writers[chunkId];
+            await target.Free();
+            Writers.Remove(chunkId);
+            ReportStack();
         }
 
         public Task FreeAllChunk()

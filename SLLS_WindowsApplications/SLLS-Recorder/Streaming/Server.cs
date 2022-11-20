@@ -62,7 +62,7 @@ namespace SLLS_Recorder.Streaming {
                     new SendChunkVideo() {
                         Available = true,
                         ChunkId = target,
-                        Length = c.length,
+                        Length = c.size,
                         Data = c.data,
                     },
                     payload
@@ -96,7 +96,10 @@ namespace SLLS_Recorder.Streaming {
 
         private void DisposeChunk() {
             long now = Time.Now();
-            Chunks.Where(v => now > v.id + v.length + 2000).ToList().ForEach(v => Chunks.Remove(v));
+            Chunks.Where(v => now > v.id + v.length + 2000).ToList().ForEach(v => {
+                Logger?.Invoke($"Chunk {v.id} expired.");
+                Chunks.Remove(v);
+            });
         }
 
         private void NewChunk(object sender, Chunk chunk) {
@@ -123,7 +126,7 @@ namespace SLLS_Recorder.Streaming {
         }
 
         private void AcceptCallback(IAsyncResult result) {
-            if (Listener == null) return;
+            if (Listener == null || !IsActive.Invoke()) return;
             try {
                 TcpClient tcpClient = Listener.EndAcceptTcpClient(result);
                 Logger?.Invoke($"--> New Connection {tcpClient.Client.RemoteEndPoint}");
@@ -187,9 +190,9 @@ namespace SLLS_Recorder.Streaming {
                 lock (Clients.SyncRoot) {
                     foreach (TcpClient c in Clients) {
                         Logger?.Invoke($"<-- Socket Close {c.Client.RemoteEndPoint}");
+                        SLLSClients.Release(c);
                         c.Client.Close();
                     }
-                    Clients.Clear();
                 }
                 OnDispose?.Invoke(this);
                 Logger?.Invoke("Listener Stopped.");

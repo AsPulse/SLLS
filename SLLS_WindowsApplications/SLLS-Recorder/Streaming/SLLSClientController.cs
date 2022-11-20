@@ -23,11 +23,13 @@ namespace SLLS_Recorder.Streaming {
 
         public void Release(TcpClient client)
         {
-            List.Where(v => v.TcpClient == client).ToList().ForEach(v =>
-            {
-                v.Disconnect();
-                List.Remove(v);
-            });
+            lock(List.SyncRoot) { 
+                List.Where(v => v.TcpClient == client).ToList().ForEach(v =>
+                {
+                    v.Disconnect();
+                    List.Remove(v);
+                });
+            }
         }
     }
 }

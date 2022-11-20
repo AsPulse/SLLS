@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using DirectShowLib;
 using SLLS_Recorder.Recording;
@@ -14,6 +15,10 @@ namespace SLLS_Recorder {
     {
         readonly Camera camera;
         Server? Server = null;
+
+        private bool isCalledQuit = false;
+        private bool isCleanuped = false;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -58,8 +63,19 @@ namespace SLLS_Recorder {
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) {
-            camera.Dispose().Wait();
-            Server?.Dispose().Wait();
+            if (isCleanuped) return;
+            e.Cancel = true;
+            if (!isCalledQuit) Quit();
+        }
+        
+        private void Quit() {
+            Task.Run(async () => {
+                isCalledQuit = true;
+                await camera.Dispose();
+                await (Server?.Dispose() ?? Task.CompletedTask);
+                isCleanuped = true;
+                Dispatcher.Invoke(() => Close());
+            });
         }
 
         private void CameraSelection_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e) {

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
@@ -53,10 +54,12 @@ namespace SLLS_Recorder.Recording {
         readonly Stopwatch sw = new();
         public WriteableBitmap bmp;
 
+        public List<Task> Renderers = new();
+
         public Camera()
         {
             vw = new(chunkId =>
-                new FFMpegWriter(this, string.Format("./data/{0}_{1}.mp4", chunkId, Time.Now()), videoStarted != null ? videoStarted + latency * chunkId : null)
+                new FFMpegWriter(this, string.Format("./data/{0}_{1}.mp4", chunkId, Time.Now()), videoStarted != null ? videoStarted + (chunkLength / fps * 1000) * chunkId : null)
             );
             bmp = new WriteableBitmap(width, height, 96, 96, PixelFormats.Bgr24, null);
             Task.Run(Worker_DoWork);
@@ -76,6 +79,16 @@ namespace SLLS_Recorder.Recording {
                 MessageBox.Show("Can't use camera.");
                 return;
             }
+        }
+
+        private Task ChunkReady(int chunkId) {
+            Task t = Task.Run(async () =>
+            {
+                Chunk? c = await vw.RenderChunk(chunkId);
+                if (c != null) NewChunkReleased?.Invoke(this, c);
+
+            });
+            return t;
         }
 
         private void Worker_DoWork()
@@ -113,11 +126,14 @@ namespace SLLS_Recorder.Recording {
                     }
                     if (renderedFrame >= chunkLength)
                     {
-                        Task.Run(async () =>
-                        {
-                            Chunk? c = await vw.RenderChunk(chunkId++);
-                            if (c != null) NewChunkReleased?.Invoke(this, c);
-                            Enumerable.Range(chunkId, 5).ToList().ForEach(x => vw.Ready(x));
+                        Task.Run(async () => {
+                            Task t = ChunkReady(chunkId++);
+                            Renderers.Add(t);
+                            await t;
+                            Renderers.Remove(t);
+                        });
+                        Task.Run(() => {
+                            Enumerable.Range(chunkId, 5).ToList().ForEach(x => vw.Ready(x)); ;
                         });
                         renderedFrame = 0;
                         sw.Restart();
@@ -171,8 +187,11 @@ namespace SLLS_Recorder.Recording {
             int finishChunk = chunkId;
             return Task.Run(async () =>
             {
-                await vw.RenderChunk(finishChunk);
+                Renderers.Add(ChunkReady(finishChunk));
+                await Task.WhenAll(new List<Task>(Renderers));
                 await vw.FreeAllChunk();
+                vw.ReportStack();
+                Renderers.Clear();
                 SetStatus(RecordingStatus.READY);
             });
         }
