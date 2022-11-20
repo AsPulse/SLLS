@@ -1,20 +1,14 @@
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Threading;
 using OpenCvSharp;
 using OpenCvSharp.WpfExtensions;
-using Size = OpenCvSharp.Size;
 
-namespace SLLS_Recorder.Recording
-{
+namespace SLLS_Recorder.Recording {
     enum RecordingStatus
     {
         READY,
@@ -47,7 +41,7 @@ namespace SLLS_Recorder.Recording
 
         public int dropFrames = 0;
 
-        private FFMpegWriterController vw;
+        private readonly FFMpegWriterController vw;
         private VideoCapture? vc;
         readonly Stopwatch sw = new();
         public WriteableBitmap bmp;

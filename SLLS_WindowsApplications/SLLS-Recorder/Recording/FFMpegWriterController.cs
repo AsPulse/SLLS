@@ -2,11 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
-namespace SLLS_Recorder.Recording
-{
+namespace SLLS_Recorder.Recording {
     internal class FFMpegWriterController
     {
         public Dictionary<int, Task<FFMpegWriter>> Writers = new();

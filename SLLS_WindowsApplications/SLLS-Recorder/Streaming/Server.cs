@@ -1,17 +1,13 @@
-using SLLS_Common;
-using SLLS_Common.ManagedPayloads;
-using SLLS_Common.ManagedPayloads.DeviceId;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Net.Http;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading.Tasks;
+using SLLS_Common;
+using SLLS_Common.ManagedPayloads.DeviceId;
 
-namespace SLLS_Recorder.Streaming
-{
+namespace SLLS_Recorder.Streaming {
     internal class Server
     {
 

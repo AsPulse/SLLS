@@ -1,16 +1,12 @@
-using DirectShowLib;
-using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Media.Imaging;
-using static OpenCvSharp.Stitcher;
+using DirectShowLib;
+using SLLS_Recorder.Recording;
+using SLLS_Recorder.Streaming;
 
 
-namespace SLLS_Recorder
-{
+namespace SLLS_Recorder {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
