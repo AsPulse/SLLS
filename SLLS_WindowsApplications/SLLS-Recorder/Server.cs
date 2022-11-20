@@ -27,6 +27,19 @@ namespace SLLS_Recorder {
         public event DisposeEventHandler? OnDispose;
 
 
+        private void Receive(ManagedPayload payload) {
+            if (payload is RequestDeviceId) {
+                if (payload.Raw == null) return;
+                Reply(
+                    new AssignDeviceId() {
+                        DeviceId = ManagedPayload.SERVER_DEVICEID,
+                        TargetDeviceId = SLLSClients.NewDevice(payload.Raw.Client, this)
+                    },
+                    payload
+                ); ;
+            }
+        }
+
         public Server(int port, Action<string> logger, Action<object> initialDisposer) {
             this.logger = logger;
             Port = port;
@@ -100,19 +113,6 @@ namespace SLLS_Recorder {
             } catch { }
         }
 
-        private void Receive(ManagedPayload payload) {
-            if(payload is RequestDeviceId) {
-                if (payload.Raw == null) return;
-                Reply(
-                    new AssignDeviceId() {
-                        DeviceId = ManagedPayload.SERVER_DEVICEID,
-                        TargetDeviceId = SLLSClients.NewDevice(payload.Raw.Client, this)
-                    },
-                    payload
-                ); ;
-            }
-        }
-
         private void Send(byte ToDeviceId, ManagedPayload payload, TcpClient c) {
             SendablePayload sendablePayload = payload.SendData(ToDeviceId);
             c.Client.Send(sendablePayload.Data);
@@ -123,6 +123,12 @@ namespace SLLS_Recorder {
         private void Reply(ManagedPayload payload, ManagedPayload received) {
             if (received.Raw == null) return;
             Send(received.DeviceId , payload, received.Raw.Client);
+        }
+
+        private void Broadcast(ManagedPayload payload) {
+            SLLSClients.List.ToList().ForEach(c => {
+                Send(c.DeviceId, payload, c.TcpClient);
+            });
         }
 
         public void Dispose() {
