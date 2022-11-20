@@ -11,6 +11,12 @@ namespace SLLS_Common {
 
         public byte[] Data = new byte[1024 * 1024 * 30];
 
+        public long Received = -1;
+
+        public void MarkReceived(ITimeProvider time) {
+            Received = time.Now();
+        }
+
         public ManagedPayload? Parse() {
             return Data[0] switch {
                 AssignDeviceId.ENDPOINT => AssignDeviceId.Parse(this),

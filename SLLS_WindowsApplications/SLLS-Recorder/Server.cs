@@ -1,4 +1,5 @@
 using SLLS_Common;
+using SLLS_Common.ManagedPayloads;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,6 +13,8 @@ namespace SLLS_Recorder {
     internal class Server {
         private readonly SLLSListener? Listener;
         private readonly SynchronizedCollection<TcpClient> Clients = new();
+
+        private ClockTimeProvider Time = new();
 
         private bool Disposed = false;
 
@@ -78,8 +81,14 @@ namespace SLLS_Recorder {
                         Clients.Remove(payload.Client);
                         return;
                     }
-                    
+
                     //Receive Process
+                    payload.MarkReceived(Time);
+                    ManagedPayload? parsed = payload.Parse();
+                    if(parsed != null) {
+                        logger?.Invoke(parsed.ToLogStringReceive());
+                        Receive(parsed);
+                    }
 
                     if (Listener != null && Listener.Active) {
                         TCPPayload nextPayload = new(payload.Client);
@@ -87,6 +96,28 @@ namespace SLLS_Recorder {
                     }
                 }
             } catch { }
+        }
+
+        private void Receive(ManagedPayload payload) {
+            if(payload is RequestDeviceId) {
+                Reply(
+                    new AssignDeviceId() {
+                        DeviceId = ManagedPayload.SERVER_DEVICEID,
+                        TargetDeviceId = 0x00
+                    },
+                    payload
+                );
+            }
+        }
+
+        private void Send(ManagedPayload payload, TcpClient c) {
+            c.Client.Send(payload.ToByte());
+            logger?.Invoke(payload.ToLogStringSend());
+        }
+
+        private void Reply(ManagedPayload payload, ManagedPayload received) {
+            if (received.Raw == null) return;
+            Send(payload, received.Raw.Client);
         }
 
         public void Dispose() {
