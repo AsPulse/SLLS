@@ -9,8 +9,7 @@ using SLLS_Common.ManagedPayloads.DeviceId;
 using SLLS_Recorder.Recording;
 
 namespace SLLS_Recorder.Streaming {
-    internal class Server
-    {
+    internal class Server {
         private readonly Func<bool> IsActive;
 
         private readonly SLLSListener? Listener;
@@ -32,19 +31,43 @@ namespace SLLS_Recorder.Streaming {
         public event DisposeEventHandler? OnDispose;
 
 
-        private void Receive(ManagedPayload payload)
-        {
-            if (payload is RequestDeviceId)
-            {
-                if (payload.Raw == null) return;
+        private void Receive(ManagedPayload payload) {
+            if (payload is RequestDeviceId requestDeviceId) {
+                if (requestDeviceId.Raw == null) return;
                 Reply(
-                    new AssignDeviceId()
-                    {
+                    new AssignDeviceId() {
                         DeviceId = ManagedPayload.SERVER_DEVICEID,
-                        TargetDeviceId = SLLSClients.NewDevice(payload.Raw.Client, this)
+                        TargetDeviceId = SLLSClients.NewDevice(requestDeviceId.Raw.Client, this)
                     },
                     payload
                 );
+                return;
+
+            }
+            if (payload is DownloadChunkVideo downloadChunkVideo) {
+                DisposeChunk();
+                long target = downloadChunkVideo.ChunkId;
+                Chunk? c = Chunks.FirstOrDefault(v => v.id == target);
+                if (c == null) {
+                    Reply(
+                        new SendChunkVideo() {
+                            Available = false,
+                            ChunkId = target
+                        },
+                        payload
+                    );
+                    return;
+                }
+                Reply(
+                    new SendChunkVideo() {
+                        Available = true,
+                        ChunkId = target,
+                        Length = c.length,
+                        Data = c.data,
+                    },
+                    payload
+                );
+                return;
             }
         }
 
@@ -86,49 +109,36 @@ namespace SLLS_Recorder.Streaming {
             });
         }
 
-        private Task AsyncAcceptWaitLoop()
-        {
+        private Task AsyncAcceptWaitLoop() {
             Logger?.Invoke($"Server Listening on TCP/{Port}...");
-            return Task.Run(() =>
-            {
-                while (IsActive.Invoke())
-                {
-                    try
-                    {
+            return Task.Run(() => {
+                while (IsActive.Invoke()) {
+                    try {
                         Listener?.BeginAcceptTcpClient(AcceptCallback, null).AsyncWaitHandle.WaitOne(-1);
-                    }
-                    catch
-                    {
+                    } catch {
                         Logger?.Invoke("Error: cannot accept new connection.");
                     }
                 }
             });
         }
 
-        private void AcceptCallback(IAsyncResult result)
-        {
+        private void AcceptCallback(IAsyncResult result) {
             if (Listener == null) return;
-            try
-            {
+            try {
                 TcpClient tcpClient = Listener.EndAcceptTcpClient(result);
                 Logger?.Invoke($"--> New Connection {tcpClient.Client.RemoteEndPoint}");
                 Clients.Add(tcpClient);
 
                 TCPPayload payload = new(tcpClient);
                 tcpClient.Client.BeginReceive(payload.Data, 0, payload.Data.Length, SocketFlags.None, ReceiveCallback, payload);
-            }
-            catch { }
+            } catch { }
         }
 
-        private void ReceiveCallback(IAsyncResult result)
-        {
-            try
-            {
-                if (result.AsyncState is TCPPayload payload)
-                {
+        private void ReceiveCallback(IAsyncResult result) {
+            try {
+                if (result.AsyncState is TCPPayload payload) {
                     int length = payload.Client.Client.EndReceive(result);
-                    if (length <= 0)
-                    {
+                    if (length <= 0) {
                         SLLSClients.Release(payload.Client);
                         Logger?.Invoke($"--> Disconnected {payload.Client.Client.RemoteEndPoint}");
                         Clients.Remove(payload.Client);
@@ -138,55 +148,44 @@ namespace SLLS_Recorder.Streaming {
                     //Receive Process
                     payload.MarkReceived(Time);
                     ManagedPayload? parsed = payload.Parse();
-                    if (parsed != null)
-                    {
+                    if (parsed != null) {
                         Logger?.Invoke(parsed.ToLogStringReceive());
                         Receive(parsed);
                     }
 
-                    if (IsActive.Invoke())
-                    {
+                    if (IsActive.Invoke()) {
                         TCPPayload nextPayload = new(payload.Client);
                         payload.Client.Client.BeginReceive(nextPayload.Data, 0, nextPayload.Data.Length, SocketFlags.None, ReceiveCallback, nextPayload);
                     }
                 }
-            }
-            catch { }
+            } catch { }
         }
 
-        private void Send(byte ToDeviceId, ManagedPayload payload, TcpClient c)
-        {
+        private void Send(byte ToDeviceId, ManagedPayload payload, TcpClient c) {
             SendablePayload sendablePayload = payload.SendData(ToDeviceId);
             c.Client.Send(sendablePayload.Data);
             Logger?.Invoke(sendablePayload.Log);
 
         }
 
-        private void Reply(ManagedPayload payload, ManagedPayload received)
-        {
+        private void Reply(ManagedPayload payload, ManagedPayload received) {
             if (received.Raw == null) return;
             Send(received.DeviceId, payload, received.Raw.Client);
         }
 
-        private void Broadcast(ManagedPayload payload)
-        {
-            SLLSClients.List.ToList().ForEach(c =>
-            {
+        private void Broadcast(ManagedPayload payload) {
+            SLLSClients.List.ToList().ForEach(c => {
                 Send(c.DeviceId, payload, c.TcpClient);
             });
         }
 
-        public void Dispose()
-        {
-            if (Disposed) return;
+        public Task Dispose() {
+            if (Disposed) return Task.CompletedTask;
             Disposed = true;
-            Task.Run(() =>
-            {
+            return Task.Run(() => {
                 Listener?.Stop();
-                lock (Clients.SyncRoot)
-                {
-                    foreach (TcpClient c in Clients)
-                    {
+                lock (Clients.SyncRoot) {
+                    foreach (TcpClient c in Clients) {
                         Logger?.Invoke($"<-- Socket Close {c.Client.RemoteEndPoint}");
                         c.Client.Close();
                     }
@@ -194,7 +193,7 @@ namespace SLLS_Recorder.Streaming {
                 }
                 OnDispose?.Invoke(this);
                 Logger?.Invoke("Listener Stopped.");
-            }).Wait();
+            });
         }
     }
 }

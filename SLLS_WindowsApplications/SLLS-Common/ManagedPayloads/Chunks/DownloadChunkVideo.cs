@@ -1,13 +1,13 @@
 namespace SLLS_Common.ManagedPayloads.DeviceId {
-    public class PushNewChunk : ManagedPayload
+    public class DownloadChunkVideo : ManagedPayload
     {
-        public const byte ENDPOINT = 0x12;
+        public const byte ENDPOINT = 0x13;
 
-        public PushNewChunk(TCPPayload? raw = null) : base(raw) { }
+        public DownloadChunkVideo(TCPPayload? raw = null) : base(raw) { }
 
         public long ChunkId { get; set; }
 
-        public static PushNewChunk? Parse(TCPPayload payload)
+        public static DownloadChunkVideo? Parse(TCPPayload payload)
         {
             if (payload.Data[0] != ENDPOINT) return null;
             return new(payload)
@@ -26,13 +26,13 @@ namespace SLLS_Common.ManagedPayloads.DeviceId {
             return new(
                 packet.ToPacket(),
                 ToDeviceId,
-                $"PUSH_NEW_CHUNK: {ChunkId}"
+                $"DOWNLOAD_CHUNK_VIDEO: {ChunkId}"
             );
         }
 
         public override string ToLogStringReceive()
         {
-            return LogStringReceive($"PUSH_NEW_CHUNK: {ChunkId}");
+            return LogStringReceive($"DOWNLOAD_CHUNK_VIDEO: {ChunkId}");
         }
     }
 }

@@ -22,6 +22,8 @@ namespace SLLS_Common {
                 AssignDeviceId.ENDPOINT => AssignDeviceId.Parse(this),
                 RequestDeviceId.ENDPOINT => RequestDeviceId.Parse(this),
                 PushNewChunk.ENDPOINT => PushNewChunk.Parse(this),
+                DownloadChunkVideo.ENDPOINT => DownloadChunkVideo.Parse(this),
+                SendChunkVideo.ENDPOINT => SendChunkVideo.Parse(this),
                 _ => null,
             };
         }

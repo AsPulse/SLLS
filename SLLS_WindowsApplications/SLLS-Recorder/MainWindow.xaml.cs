@@ -58,8 +58,8 @@ namespace SLLS_Recorder {
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) {
-            camera.Dispose();
-            Server?.Dispose();
+            camera.Dispose().Wait();
+            Server?.Dispose().Wait();
         }
 
         private void CameraSelection_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e) {

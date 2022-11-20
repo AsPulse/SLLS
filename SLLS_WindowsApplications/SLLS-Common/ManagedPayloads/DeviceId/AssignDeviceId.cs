@@ -23,7 +23,7 @@ namespace SLLS_Common.ManagedPayloads.DeviceId {
             return new(
                 new byte[] { ENDPOINT, DeviceId, ToDeviceId, TargetDeviceId },
                 ToDeviceId,
-                $"Assigned: 0x{TargetDeviceId:X2}"
+                $"ASSIGN_DEVICEID: 0x{TargetDeviceId:X2}"
             );
         }
 

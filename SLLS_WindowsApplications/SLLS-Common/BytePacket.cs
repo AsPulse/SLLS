@@ -18,6 +18,9 @@ namespace SLLS_Common {
             Append(new byte[] { d });
         }
 
+        public void Append(int d) {
+            Append(BitConverter.GetBytes(d));
+        }
 
         public void Append(long d) {
             Append(BitConverter.GetBytes(d));

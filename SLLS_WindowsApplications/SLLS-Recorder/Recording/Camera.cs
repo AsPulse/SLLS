@@ -17,7 +17,7 @@ namespace SLLS_Recorder.Recording {
         PREPARING_TO_FINISH
     };
 
-    internal class Camera : IDisposable
+    internal class Camera
     {
 
         public delegate void CameraImageRefreshedEventHandler(object sender);
@@ -36,7 +36,7 @@ namespace SLLS_Recorder.Recording {
         public readonly int width = 1920;
         public readonly int height = 1080;
         public readonly int fps = 24;
-        public readonly int latency = 240 * 3;
+        public readonly int latency = (240 / 24) * 1000 * 3;
 
         public RecordingStatus status = RecordingStatus.READY;
 
@@ -44,7 +44,7 @@ namespace SLLS_Recorder.Recording {
         public readonly int chunkLength = 240;
         public int renderedFrame = 0;
         public long? videoStarted = null;
-        public int chunkId = -1;
+        public int chunkId = 0;
 
         public int dropFrames = 0;
 
@@ -126,11 +126,11 @@ namespace SLLS_Recorder.Recording {
             }
         }
 
-        public void Dispose()
+        public Task Dispose()
         {
-            if (!live) return;
+            if (!live) return Task.CompletedTask;
             live = false;
-            StopRecord().Wait();
+            return StopRecord();
         }
 
         private void SetStatus(RecordingStatus newStatus)
@@ -147,7 +147,7 @@ namespace SLLS_Recorder.Recording {
         {
             if (status != RecordingStatus.READY) return;
             SetStatus(RecordingStatus.PREPARING_TO_START);
-            chunkId++;
+            chunkId = 0;
             renderedFrame = 0;
             dropFrames = 0;
             Task.Run(async () =>
@@ -173,7 +173,6 @@ namespace SLLS_Recorder.Recording {
             {
                 await vw.RenderChunk(finishChunk);
                 await vw.FreeAllChunk();
-                chunkId = -1;
                 SetStatus(RecordingStatus.READY);
             });
         }
