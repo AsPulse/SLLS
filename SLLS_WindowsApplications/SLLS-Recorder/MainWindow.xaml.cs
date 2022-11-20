@@ -9,7 +9,8 @@ using System.Windows.Media.Imaging;
 using static OpenCvSharp.Stitcher;
 
 
-namespace SLLS_Recorder {
+namespace SLLS_Recorder
+{
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>

@@ -5,16 +5,20 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SLLS_Recorder {
-    internal class FFMpegWriterController {
+namespace SLLS_Recorder.Recording
+{
+    internal class FFMpegWriterController
+    {
         public Dictionary<int, Task<FFMpegWriter>> Writers = new();
         public Func<int, FFMpegWriter> Provider { get; }
 
-        public FFMpegWriterController(Func<int, FFMpegWriter> provider) {
+        public FFMpegWriterController(Func<int, FFMpegWriter> provider)
+        {
             Provider = provider;
         }
 
-        public void Ready(int chunkId) {
+        public void Ready(int chunkId)
+        {
             if (Writers.ContainsKey(chunkId)) return;
             Writers.Add(
                 chunkId,
@@ -23,13 +27,16 @@ namespace SLLS_Recorder {
             ReportStack();
         }
 
-        public Task<FFMpegWriter> GetVw(int chunkId) {
+        public Task<FFMpegWriter> GetVw(int chunkId)
+        {
             if (!Writers.ContainsKey(chunkId)) Ready(chunkId);
             return Writers[chunkId];
         }
 
-        public Task RenderChunk(int chunkId) {
-            return Task.Run(async () => {
+        public Task RenderChunk(int chunkId)
+        {
+            return Task.Run(async () =>
+            {
                 if (!Writers.ContainsKey(chunkId)) return;
                 FFMpegWriter target = await Writers[chunkId];
                 await target.Render();
@@ -38,8 +45,10 @@ namespace SLLS_Recorder {
             });
         }
 
-        public Task FreeChunk(int chunkId) {
-            return Task.Run(async () => {
+        public Task FreeChunk(int chunkId)
+        {
+            return Task.Run(async () =>
+            {
                 if (!Writers.ContainsKey(chunkId)) return;
                 FFMpegWriter target = await Writers[chunkId];
                 await target.Free();
@@ -48,14 +57,16 @@ namespace SLLS_Recorder {
             });
         }
 
-        public Task FreeAllChunk() {
+        public Task FreeAllChunk()
+        {
             return Task.WhenAll(Writers.Keys.Select(x => FreeChunk(x)));
         }
 
-        public void ReportStack() {
+        public void ReportStack()
+        {
             Debug.WriteLine(string.Format("Now we have {0} writer(s)", Writers.Count));
         }
 
-        
+
     }
 }

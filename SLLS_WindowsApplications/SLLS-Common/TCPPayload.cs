@@ -1,7 +1,8 @@
-using SLLS_Common.ManagedPayloads;
+using SLLS_Common.ManagedPayloads.DeviceId;
 using System.Net.Sockets;
 
-namespace SLLS_Common {
+namespace SLLS_Common
+{
     public class TCPPayload {
         public TcpClient Client { get; private set; }
 

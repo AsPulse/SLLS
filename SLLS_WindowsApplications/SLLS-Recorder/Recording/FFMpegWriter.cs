@@ -6,8 +6,10 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
-namespace SLLS_Recorder {
-    internal class FFMpegWriter {
+namespace SLLS_Recorder.Recording
+{
+    internal class FFMpegWriter
+    {
         private readonly Process Proc;
         private readonly StreamWriter sw;
 
@@ -24,7 +26,8 @@ namespace SLLS_Recorder {
 
         public static string ZeroLatencyCPU = " -tune fastdecode,zerolatency";
         public static string ZeroLatencyGPU = " -delay 0 -zerolatency 1 -preset llhq -tune ull";
-        public FFMpegWriter(int framerate, int width, int height, string outputPath) {
+        public FFMpegWriter(int framerate, int width, int height, string outputPath)
+        {
             Width = width;
             Height = height;
             OutputPath = Path.GetFullPath(outputPath);
@@ -33,8 +36,8 @@ namespace SLLS_Recorder {
             Proc.StartInfo.FileName = "./ffmpeg.exe";
             Proc.StartInfo.Arguments =
                 string.Format(
-                    "-y -f rawvideo -pixel_format bgr24 -video_size {0}x{1} -framerate {2}" + 
-                    " -i - -an -vcodec h264_nvenc -pix_fmt yuv420p" + 
+                    "-y -f rawvideo -pixel_format bgr24 -video_size {0}x{1} -framerate {2}" +
+                    " -i - -an -vcodec h264_nvenc -pix_fmt yuv420p" +
                     " -b 5M -maxrate 6M -bufsize 6M" +
                     " -movflags +faststart -flags cgop -qmin 10" +
                     ZeroLatencyGPU +
@@ -48,8 +51,10 @@ namespace SLLS_Recorder {
             sw = Proc.StandardInput;
         }
 
-        public Task AppendFrame(Mat m) {
-            return Task.Run(() => {
+        public Task AppendFrame(Mat m)
+        {
+            return Task.Run(() =>
+            {
                 int size = Width * Height * 3;
                 byte[] buffer = new byte[size];
                 Marshal.Copy(m.Data, buffer, 0, size);
@@ -58,29 +63,38 @@ namespace SLLS_Recorder {
             });
         }
 
-        public void SetFrame(int frame, Mat mat) {
+        public void SetFrame(int frame, Mat mat)
+        {
             Appender = Task.WhenAll(
                 Appender,
-                Task.Run(async () => {
-                    if (frame == AppendedFrames) {
+                Task.Run(async () =>
+                {
+                    if (frame == AppendedFrames)
+                    {
                         await AppendFrame(mat);
                         AppendedFrames++;
-                        while (matTable.ContainsKey(AppendedFrames)) {
+                        while (matTable.ContainsKey(AppendedFrames))
+                        {
                             await AppendFrame(matTable[AppendedFrames]);
                             AppendedFrames++;
                         }
-                        if(frame + 1 < AppendedFrames) {
+                        if (frame + 1 < AppendedFrames)
+                        {
                             Debug.WriteLine(string.Format("Waited frame ({0}th frame) is provided. Now head on {1}th frame", frame, AppendedFrames));
                         }
-                    } else {
+                    }
+                    else
+                    {
                         matTable.Add(frame, mat);
                     }
                 })
            );
         }
 
-        public Task Render() {
-            return Task.Run(async () => {
+        public Task Render()
+        {
+            return Task.Run(async () =>
+            {
                 Stopwatch renderTime = Stopwatch.StartNew();
                 await Appender;
                 sw.Close();
@@ -90,8 +104,10 @@ namespace SLLS_Recorder {
             });
         }
 
-        public Task Free() {
-            return Task.Run(async () => {
+        public Task Free()
+        {
+            return Task.Run(async () =>
+            {
                 Proc.Kill();
                 await Task.Delay(1000);
                 if (File.Exists(OutputPath)) File.Delete(OutputPath);

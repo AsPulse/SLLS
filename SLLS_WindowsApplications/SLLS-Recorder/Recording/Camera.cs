@@ -13,15 +13,18 @@ using OpenCvSharp;
 using OpenCvSharp.WpfExtensions;
 using Size = OpenCvSharp.Size;
 
-namespace SLLS_Recorder {
-    enum RecordingStatus {
+namespace SLLS_Recorder.Recording
+{
+    enum RecordingStatus
+    {
         READY,
         PREPARING_TO_START,
         RECORDING,
         PREPARING_TO_FINISH
     };
 
-    internal class Camera : IDisposable {
+    internal class Camera : IDisposable
+    {
 
         public delegate void CameraImageRefreshedEventHandler(object sender);
         public event CameraImageRefreshedEventHandler? CameraImageRefreshed;
@@ -49,7 +52,8 @@ namespace SLLS_Recorder {
         readonly Stopwatch sw = new();
         public WriteableBitmap bmp;
 
-        public Camera() {
+        public Camera()
+        {
             vw = new(chunkId =>
                 new FFMpegWriter(fps, width, height, string.Format("./data/{0}.mp4", chunkId))
             );
@@ -57,28 +61,34 @@ namespace SLLS_Recorder {
             Task.Run(Worker_DoWork);
         }
 
-        public void SelectCamera(int id) {
+        public void SelectCamera(int id)
+        {
             vc = null;
-            vc = new(id) {
+            vc = new(id)
+            {
                 FrameWidth = width,
                 FrameHeight = height
             };
 
-            if (!vc.IsOpened()) {
+            if (!vc.IsOpened())
+            {
                 MessageBox.Show("Can't use camera.");
                 return;
             }
         }
 
-        private void Worker_DoWork() {
+        private void Worker_DoWork()
+        {
 
             Mat frame = new(width, height, MatType.CV_8UC3);
 
-            while (live) {
+            while (live)
+            {
                 if (vc == null) continue;
                 vc.Read(frame);
                 if (frame.Empty()) continue;
-                Application.Current.Dispatcher.Invoke(() => {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
                     WriteableBitmapConverter.ToWriteableBitmap(frame, bmp);
                     CameraImageRefreshed?.Invoke(this);
                 });
@@ -86,20 +96,25 @@ namespace SLLS_Recorder {
                 /**
                  * Recording
                  */
-                if (recording) {
-                    int nowFrame = (int) Math.Round(sw.Elapsed.TotalSeconds * fps);
+                if (recording)
+                {
+                    int nowFrame = (int)Math.Round(sw.Elapsed.TotalSeconds * fps);
                     int skipped = nowFrame - renderedFrame - 1;
-                    if (skipped > 0) {
+                    if (skipped > 0)
+                    {
                         dropFrames += skipped;
-                        Debug.WriteLine(string.Format("Dropped: {0} ( of {1} )",skipped, dropFrames));
+                        Debug.WriteLine(string.Format("Dropped: {0} ( of {1} )", skipped, dropFrames));
                     }
-                    while(renderedFrame < nowFrame && renderedFrame < chunkLength) {
+                    while (renderedFrame < nowFrame && renderedFrame < chunkLength)
+                    {
                         vw.GetVw(chunkId).Result.SetFrame(renderedFrame, frame);
                         renderedFrame++;
                     }
-                    if (renderedFrame >= chunkLength) {
+                    if (renderedFrame >= chunkLength)
+                    {
                         vw.RenderChunk(chunkId++);
-                        Task.Run(() => {
+                        Task.Run(() =>
+                        {
                             Enumerable.Range(chunkId, 5).ToList().ForEach(x => vw.Ready(x));
                         });
                         renderedFrame = 0;
@@ -109,27 +124,32 @@ namespace SLLS_Recorder {
             }
         }
 
-        public void Dispose() {
+        public void Dispose()
+        {
             if (!live) return;
             live = false;
             StopRecord().Wait();
         }
 
-        private void SetStatus(RecordingStatus newStatus) {
+        private void SetStatus(RecordingStatus newStatus)
+        {
             status = newStatus;
-            Application.Current.Dispatcher.Invoke(() => {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
                 StatusChanged?.Invoke(this, newStatus);
             });
         }
 
-        
-        public void StartRecord() {
+
+        public void StartRecord()
+        {
             if (status != RecordingStatus.READY) return;
             SetStatus(RecordingStatus.PREPARING_TO_START);
             chunkId++;
             renderedFrame = 0;
             dropFrames = 0;
-            Task.Run(async () => {
+            Task.Run(async () =>
+            {
                 await Task.WhenAll(Enumerable.Range(chunkId, 5).Select(x => vw.GetVw(x)));
                 sw.Restart();
                 recording = true;
@@ -138,13 +158,15 @@ namespace SLLS_Recorder {
             });
         }
 
-        public Task StopRecord() {
+        public Task StopRecord()
+        {
             if (status != RecordingStatus.RECORDING) return Task.CompletedTask;
             SetStatus(RecordingStatus.PREPARING_TO_FINISH);
             recording = false;
             renderedFrame = 0;
             int finishChunk = chunkId;
-            return Task.Run(async () => {
+            return Task.Run(async () =>
+            {
                 await vw.RenderChunk(finishChunk);
                 await vw.FreeAllChunk();
                 SetStatus(RecordingStatus.READY);
