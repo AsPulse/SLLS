@@ -11,11 +11,11 @@ using System.Threading.Tasks;
 
 namespace SLLS_Recorder {
     internal class Server {
+
         private readonly SLLSListener? Listener;
         private readonly SynchronizedCollection<TcpClient> Clients = new();
         private readonly SLLSClientController SLLSClients = new();
-
-        private ClockTimeProvider Time = new();
+        private readonly ClockTimeProvider Time = new();
 
         private bool Disposed = false;
 
@@ -78,6 +78,7 @@ namespace SLLS_Recorder {
                 if (result.AsyncState is TCPPayload payload) {
                     int length = payload.Client.Client.EndReceive(result);
                     if (length <= 0) {
+                        SLLSClients.Release(payload.Client);
                         logger?.Invoke($"--> Disconnected {payload.Client.Client.RemoteEndPoint}");
                         Clients.Remove(payload.Client);
                         return;
@@ -101,13 +102,14 @@ namespace SLLS_Recorder {
 
         private void Receive(ManagedPayload payload) {
             if(payload is RequestDeviceId) {
+                if (payload.Raw == null) return;
                 Reply(
                     new AssignDeviceId() {
                         DeviceId = ManagedPayload.SERVER_DEVICEID,
-                        TargetDeviceId = 0x00
+                        TargetDeviceId = SLLSClients.NewDevice(payload.Raw.Client, this)
                     },
                     payload
-                );
+                ); ;
             }
         }
 
