@@ -26,17 +26,24 @@ namespace SLLS_Recorder.Recording {
         public delegate void StatusChangedEventHandler(object sender, RecordingStatus status);
         public event StatusChangedEventHandler? StatusChanged;
 
+        public delegate void NewChunkReleasedEventHandler(object sender, Chunk chunk);
+        public event NewChunkReleasedEventHandler? NewChunkReleased;
+
+        private readonly ClockTimeProvider Time = new();
+
         private bool live = true;
 
-        private readonly int width = 1920;
-        private readonly int height = 1080;
-        private readonly int fps = 24;
+        public readonly int width = 1920;
+        public readonly int height = 1080;
+        public readonly int fps = 24;
+        public readonly int latency = 240 * 3;
 
         public RecordingStatus status = RecordingStatus.READY;
 
         private bool recording = false;
         public readonly int chunkLength = 240;
         public int renderedFrame = 0;
+        public long? videoStarted = null;
         public int chunkId = -1;
 
         public int dropFrames = 0;
@@ -49,7 +56,7 @@ namespace SLLS_Recorder.Recording {
         public Camera()
         {
             vw = new(chunkId =>
-                new FFMpegWriter(fps, width, height, string.Format("./data/{0}.mp4", chunkId))
+                new FFMpegWriter(this, string.Format("./data/{0}_{1}.mp4", chunkId, Time.Now()), videoStarted != null ? videoStarted + latency * chunkId : null)
             );
             bmp = new WriteableBitmap(width, height, 96, 96, PixelFormats.Bgr24, null);
             Task.Run(Worker_DoWork);
@@ -106,9 +113,10 @@ namespace SLLS_Recorder.Recording {
                     }
                     if (renderedFrame >= chunkLength)
                     {
-                        vw.RenderChunk(chunkId++);
-                        Task.Run(() =>
+                        Task.Run(async () =>
                         {
+                            Chunk? c = await vw.RenderChunk(chunkId++);
+                            if (c != null) NewChunkReleased?.Invoke(this, c);
                             Enumerable.Range(chunkId, 5).ToList().ForEach(x => vw.Ready(x));
                         });
                         renderedFrame = 0;
@@ -144,6 +152,7 @@ namespace SLLS_Recorder.Recording {
             dropFrames = 0;
             Task.Run(async () =>
             {
+                videoStarted = Time.Now() + latency + 100;
                 await Task.WhenAll(Enumerable.Range(chunkId, 5).Select(x => vw.GetVw(x)));
                 sw.Restart();
                 recording = true;
@@ -158,11 +167,13 @@ namespace SLLS_Recorder.Recording {
             SetStatus(RecordingStatus.PREPARING_TO_FINISH);
             recording = false;
             renderedFrame = 0;
+            videoStarted = null;
             int finishChunk = chunkId;
             return Task.Run(async () =>
             {
                 await vw.RenderChunk(finishChunk);
                 await vw.FreeAllChunk();
+                chunkId = -1;
                 SetStatus(RecordingStatus.READY);
             });
         }

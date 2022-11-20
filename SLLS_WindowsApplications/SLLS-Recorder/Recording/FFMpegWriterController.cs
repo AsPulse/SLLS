@@ -31,15 +31,16 @@ namespace SLLS_Recorder.Recording {
             return Writers[chunkId];
         }
 
-        public Task RenderChunk(int chunkId)
+        public Task<Chunk?> RenderChunk(int chunkId)
         {
             return Task.Run(async () =>
             {
-                if (!Writers.ContainsKey(chunkId)) return;
+                if (!Writers.ContainsKey(chunkId)) return null;
                 FFMpegWriter target = await Writers[chunkId];
-                await target.Render();
+                Chunk? c = await target.Render();
                 Writers.Remove(chunkId);
                 ReportStack();
+                return c;
             });
         }
 

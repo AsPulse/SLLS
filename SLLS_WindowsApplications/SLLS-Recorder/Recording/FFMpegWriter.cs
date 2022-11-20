@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading.Tasks;
 using OpenCvSharp;
 
@@ -15,6 +16,7 @@ namespace SLLS_Recorder.Recording {
         public int Height { get; }
 
         public string OutputPath { get; }
+        public readonly long? Id;
 
         private int AppendedFrames = 0;
 
@@ -24,10 +26,10 @@ namespace SLLS_Recorder.Recording {
 
         public static string ZeroLatencyCPU = " -tune fastdecode,zerolatency";
         public static string ZeroLatencyGPU = " -delay 0 -zerolatency 1 -preset llhq -tune ull";
-        public FFMpegWriter(int framerate, int width, int height, string outputPath)
+        public FFMpegWriter(Camera camera, string outputPath, long? id)
         {
-            Width = width;
-            Height = height;
+            Width = camera.width;
+            Height = camera.height;
             OutputPath = Path.GetFullPath(outputPath);
 
             Proc = new Process();
@@ -40,13 +42,14 @@ namespace SLLS_Recorder.Recording {
                     " -movflags +faststart -flags cgop -qmin 10" +
                     ZeroLatencyGPU +
                     " {3}",
-                    width, height, framerate, OutputPath
-                );
+                    Width, Height, camera.fps, OutputPath
+                ); ;
             Proc.StartInfo.CreateNoWindow = true;
             Proc.StartInfo.UseShellExecute = false;
             Proc.StartInfo.RedirectStandardInput = true;
             Proc.Start();
             sw = Proc.StandardInput;
+            Id = id;
         }
 
         public Task AppendFrame(Mat m)
@@ -89,16 +92,28 @@ namespace SLLS_Recorder.Recording {
            );
         }
 
-        public Task Render()
+        public Task<Chunk?> Render()
         {
             return Task.Run(async () =>
             {
+                Chunk? chunk = null;
                 Stopwatch renderTime = Stopwatch.StartNew();
                 await Appender;
                 sw.Close();
                 await Proc.WaitForExitAsync();
+                if (File.Exists(OutputPath)) {
+                    if (Id != null) {
+                        using FileStream sr = File.OpenRead(OutputPath);
+                        long length = sr.Length;
+                        byte[] bytes = new byte[length];
+                        sr.Read(bytes, 0, (int)length);
+                        chunk = new Chunk((long)Id, bytes, AppendedFrames);
+                    }
+                    File.Delete(OutputPath);
+                }
                 Proc.Close();
                 Debug.WriteLine(string.Format("Encoded! ({0}ms)", renderTime.ElapsedMilliseconds));
+                return chunk;
             });
         }
 

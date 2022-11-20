@@ -18,7 +18,7 @@ namespace SLLS_Recorder.Streaming {
 
         internal void Disconnect()
         {
-            Server.logger?.Invoke($"<-- Device lost connection: 0x{DeviceId:X2}");
+            Server.Logger?.Invoke($"<-- Device lost connection: 0x{DeviceId:X2}");
         }
     }
 }

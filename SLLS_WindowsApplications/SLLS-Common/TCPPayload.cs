@@ -21,6 +21,7 @@ namespace SLLS_Common {
             return Data[0] switch {
                 AssignDeviceId.ENDPOINT => AssignDeviceId.Parse(this),
                 RequestDeviceId.ENDPOINT => RequestDeviceId.Parse(this),
+                PushNewChunk.ENDPOINT => PushNewChunk.Parse(this),
                 _ => null,
             };
         }

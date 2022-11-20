@@ -99,7 +99,8 @@ namespace SLLS_Recorder {
                                 PortNumber.IsEnabled = true;
                                 Server = null;
                             });
-                        }
+                        },
+                        camera
                     );
                 } else {
                     ListboxLog("Unable Port Number");
