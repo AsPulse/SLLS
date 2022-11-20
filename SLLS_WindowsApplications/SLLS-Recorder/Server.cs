@@ -13,6 +13,7 @@ namespace SLLS_Recorder {
     internal class Server {
         private readonly SLLSListener? Listener;
         private readonly SynchronizedCollection<TcpClient> Clients = new();
+        private readonly SLLSClientController SLLSClients = new();
 
         private ClockTimeProvider Time = new();
 
@@ -110,14 +111,16 @@ namespace SLLS_Recorder {
             }
         }
 
-        private void Send(ManagedPayload payload, TcpClient c) {
-            c.Client.Send(payload.ToByte());
-            logger?.Invoke(payload.ToLogStringSend());
+        private void Send(byte ToDeviceId, ManagedPayload payload, TcpClient c) {
+            SendablePayload sendablePayload = payload.SendData(ToDeviceId);
+            c.Client.Send(sendablePayload.Data);
+            logger?.Invoke(sendablePayload.Log);
+            
         }
 
         private void Reply(ManagedPayload payload, ManagedPayload received) {
             if (received.Raw == null) return;
-            Send(payload, received.Raw.Client);
+            Send(received.DeviceId , payload, received.Raw.Client);
         }
 
         public void Dispose() {

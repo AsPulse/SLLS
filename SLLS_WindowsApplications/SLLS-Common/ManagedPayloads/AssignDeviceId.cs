@@ -21,15 +21,16 @@ namespace SLLS_Common.ManagedPayloads {
             };
         }
 
-        public override byte[] ToByte() {
-            return new byte[] { ENDPOINT, DeviceId, TargetDeviceId };
+        public override SendablePayload SendData(byte ToDeviceId) {
+            return new(
+                new byte[] { ENDPOINT, DeviceId, ToDeviceId, TargetDeviceId },
+                ToDeviceId,
+                $"Assigned: 0x{TargetDeviceId:X2}"
+            );
         }
 
-        public override string ToLogStringSend() {
-            return $"<-- ASSIGN_DEVICEID Assigned: 0x{TargetDeviceId:X2}";
-        }
         public override string ToLogStringReceive() {
-            return $"--> 0x{DeviceId:X2} ASSIGN_DEVICEID";
+            return LogStringReceive("ASSIGN_DEVICEID");
         }
     }
 }
