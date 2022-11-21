@@ -15,7 +15,7 @@ namespace SLLS_Recorder.Streaming {
         private readonly SLLSListener? Listener;
         private readonly SynchronizedCollection<TcpClient> Clients = new();
         private readonly SLLSClientController SLLSClients = new();
-        private readonly ClockTimeProvider Time = new();
+        private readonly ClockTimeProvider Time;
 
         private readonly Camera TargetCamera;
 
@@ -71,7 +71,7 @@ namespace SLLS_Recorder.Streaming {
             }
         }
 
-        public Server(int port, Action<string> logger, Action<object> initialDisposer, Camera camera) {
+        public Server(int port, Action<string> logger, Action<object> initialDisposer, Camera camera, ClockTimeProvider time) {
             Logger = logger;
             TargetCamera = camera;
             Port = port;
@@ -92,6 +92,7 @@ namespace SLLS_Recorder.Streaming {
                 logger?.Invoke("Error: Server cannot start because of Unknown Reason.");
                 Dispose();
             }
+            Time = time;
         }
 
         private void DisposeChunk() {
@@ -138,6 +139,7 @@ namespace SLLS_Recorder.Streaming {
         }
 
         private void ReceiveCallback(IAsyncResult result) {
+            if (!IsActive.Invoke()) return;
             try {
                 if (result.AsyncState is TCPPayload payload) {
                     int length = payload.Client.Client.EndReceive(result);

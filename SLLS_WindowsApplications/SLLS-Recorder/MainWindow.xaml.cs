@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Threading;
 using DirectShowLib;
 using SLLS_Recorder.Recording;
 using SLLS_Recorder.Streaming;
@@ -13,8 +15,10 @@ namespace SLLS_Recorder {
     /// </summary>
     public partial class MainWindow : Window
     {
+        readonly ClockTimeProvider Time = new();
         readonly Camera camera;
         Server? Server = null;
+        
 
         private bool isCalledQuit = false;
         private bool isCleanuped = false;
@@ -37,6 +41,19 @@ namespace SLLS_Recorder {
             int obsCameraIndex = cameras.FindIndex(v => v.Contains("OBS-Camera")); ;
 
             CameraSelection.SelectedIndex = obsCameraIndex >= 0 ? obsCameraIndex : 0;
+
+            DispatcherTimer clock = new() {
+                Interval = TimeSpan.FromMilliseconds(100),
+            };
+            clock.Tick += (_, _) => {
+                int msToSec = 1000;
+                long now = Time.Now() + msToSec * 60 * 60 * 9;
+                long hour = now % (msToSec * 60 * 60 * 24) / (msToSec * 60 * 60);
+                long minute = now % (msToSec * 60 * 60) / (msToSec * 60);
+                long second = now % (msToSec * 60) / msToSec;
+                ServerClock.Content = $"SERVER CLOCK {hour:00}:{minute:00}:{second:00}";
+            };
+            clock.Start();
         }
 
         private void Camera_StatusChanged(object sender, RecordingStatus status) {
@@ -116,7 +133,8 @@ namespace SLLS_Recorder {
                                 Server = null;
                             });
                         },
-                        camera
+                        camera,
+                        Time
                     );
                 } else {
                     ListboxLog("Unable Port Number");

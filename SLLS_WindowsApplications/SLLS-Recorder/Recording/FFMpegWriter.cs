@@ -80,6 +80,7 @@ namespace SLLS_Recorder.Recording {
                         while (matTable.ContainsKey(AppendedFrames))
                         {
                             await AppendFrame(matTable[AppendedFrames]);
+                            matTable.Remove(AppendedFrames);
                             AppendedFrames++;
                         }
                         if (frame + 1 < AppendedFrames)
