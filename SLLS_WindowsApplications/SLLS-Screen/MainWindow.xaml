@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:SLLS_Screen"
         mc:Ignorable="d"
-        Title="SLLS-Screen" Height="450" Width="800">
+        Title="SLLS-Screen" Height="450" Width="800" Closing="Window_Closing">
     <Grid Margin="5,5,5,5" Grid.Row="1">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -25,7 +25,7 @@
                 <TextBox x:Name="Host" Grid.Column="0" Padding="3,3,3,3" HorizontalContentAlignment="Center" ></TextBox>
                 <Label Content=":"  Grid.Column="1"/>
                 <TextBox x:Name="PortNumber" Grid.Column="2" Padding="3,3,3,3" HorizontalContentAlignment="Center" ></TextBox>
-                <Button x:Name="Listen" Grid.Column="3" Padding="12,4,12,4" Margin="10,0,0,0" Click="Connect_Click">Connect</Button>
+                <Button x:Name="Connect" Grid.Column="3" Padding="12,4,12,4" Margin="10,0,0,0" Click="Connect_Click">Connect</Button>
             </Grid>
         </StackPanel>
         <ListBox x:Name="Logger" Margin="5,20,5,5" Grid.Row="2"/>
