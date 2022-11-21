@@ -18,7 +18,6 @@ namespace SLLS_Recorder.Recording {
             this.data = data;
             this.length = length;
             size = data.Length;
-            Debug.WriteLine($"Length: {this.length}");
         }
     }
 }

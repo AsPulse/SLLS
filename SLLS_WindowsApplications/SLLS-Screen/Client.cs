@@ -10,6 +10,7 @@ using System.Windows.Media.Media3D;
 using SLLS_Common;
 using System.Net.Http;
 using SLLS_Common.ManagedPayloads.DeviceId;
+using SLLS_Recorder.Recording;
 
 namespace SLLS_Screen {
     internal class Client {
@@ -21,6 +22,7 @@ namespace SLLS_Screen {
 
         private TcpClient? client;
 
+        public List<Chunk> Chunks = new();
         private byte OwnDeviceId = 0xFF;
 
         public Action<string>? Logger;
@@ -59,10 +61,38 @@ namespace SLLS_Screen {
         }
 
         private void Receive(ManagedPayload payload) {
-            if(payload is AssignDeviceId assignDeviceId) {
+            DisposeChunk();
+            if (payload is AssignDeviceId assignDeviceId) {
                 OwnDeviceId = assignDeviceId.TargetDeviceId;
                 return;
             }
+            if(payload is PushNewChunk pushNewChunk) {
+                Chunk c = new(pushNewChunk.ChunkId, pushNewChunk.ChunkLength);
+                Chunks.Add(c);
+                SendToServer(
+                    new DownloadChunkVideo() {
+                        DeviceId = OwnDeviceId,
+                        ChunkId = c.id,
+                    }
+                );
+                c.StartDownload();
+                return;
+            }
+            if(payload is SendChunkVideo sendChunkVideo) {
+                Chunk? c = Chunks.FirstOrDefault(c => c.id == sendChunkVideo.ChunkId);
+                if (!sendChunkVideo.Available || c == null || sendChunkVideo.Data == null) {
+                    Chunks.RemoveAll(c => c.id == sendChunkVideo.ChunkId);
+                    return;
+                }
+                c.Ready(sendChunkVideo.Data);
+            }
+        }
+
+        private void DisposeChunk() {
+            long now = Time.Now();
+            Chunks.Where(v => now > v.id + v.length + 5000).ToList().ForEach(v => {
+                Chunks.Remove(v);
+            });
         }
 
 
