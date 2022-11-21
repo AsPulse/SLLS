@@ -6,6 +6,7 @@ namespace SLLS_Common.ManagedPayloads.DeviceId {
         public PushNewChunk(TCPPayload? raw = null) : base(raw) { }
 
         public long ChunkId { get; set; }
+        public int ChunkLength { get; set; }
 
         public static PushNewChunk? Parse(TCPPayload payload)
         {
@@ -13,7 +14,8 @@ namespace SLLS_Common.ManagedPayloads.DeviceId {
             return new(payload)
             {
                 DeviceId = payload.Data[1],
-                ChunkId = BitConverter.ToInt64(payload.Data.AsSpan()[3..11])
+                ChunkId = BitConverter.ToInt64(payload.Data.AsSpan()[3..11]),
+                ChunkLength = BitConverter.ToInt32(payload.Data.AsSpan()[11..15])
             };
         }
 
@@ -22,17 +24,18 @@ namespace SLLS_Common.ManagedPayloads.DeviceId {
             BytePacket packet = new();
             packet.Append(new byte[] { ENDPOINT, DeviceId, ToDeviceId });
             packet.Append(ChunkId);
+            packet.Append(ChunkLength);
 
             return new(
                 packet.ToPacket(),
                 ToDeviceId,
-                $"PUSH_NEW_CHUNK: {ChunkId}"
+                $"PUSH_NEW_CHUNK: {ChunkId} (Length {ChunkLength})"
             );
         }
 
         public override string ToLogStringReceive()
         {
-            return LogStringReceive($"PUSH_NEW_CHUNK: {ChunkId}");
+            return LogStringReceive($"PUSH_NEW_CHUNK: {ChunkId} (Length {ChunkLength})");
         }
     }
 }

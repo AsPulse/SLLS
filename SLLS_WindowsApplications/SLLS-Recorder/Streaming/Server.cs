@@ -98,7 +98,6 @@ namespace SLLS_Recorder.Streaming {
         private void DisposeChunk() {
             long now = Time.Now();
             Chunks.Where(v => now > v.id + v.length + 2000).ToList().ForEach(v => {
-                Logger?.Invoke($"Chunk {v.id} expired.");
                 Chunks.Remove(v);
             });
         }
@@ -109,7 +108,8 @@ namespace SLLS_Recorder.Streaming {
             if (!IsActive.Invoke()) return;
             Broadcast(new PushNewChunk() {
                 DeviceId = ManagedPayload.SERVER_DEVICEID,
-                ChunkId = chunk.id
+                ChunkId = chunk.id,
+                ChunkLength = chunk.length
             });
         }
 
