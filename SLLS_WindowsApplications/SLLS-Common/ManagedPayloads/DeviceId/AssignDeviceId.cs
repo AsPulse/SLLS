@@ -14,7 +14,7 @@ namespace SLLS_Common.ManagedPayloads.DeviceId {
             return new(payload)
             {
                 DeviceId = payload.Data[1],
-                TargetDeviceId = payload.Data[2],
+                TargetDeviceId = payload.Data[3],
             };
         }
 
@@ -29,7 +29,7 @@ namespace SLLS_Common.ManagedPayloads.DeviceId {
 
         public override string ToLogStringReceive()
         {
-            return LogStringReceive("ASSIGN_DEVICEID");
+            return LogStringReceive($"ASSIGN_DEVICEID: 0x{TargetDeviceId:X2}");
         }
     }
 }
