@@ -27,10 +27,12 @@ namespace SLLS_Screen {
 
         private bool isCalledQuit = false;
         private bool isCleanuped = false;
-
+        readonly Projector Projector;
 
         public MainWindow() {
             InitializeComponent();
+            Projector = new();
+            Projector.Show();
         }
 
         private void Connect_Click(object sender, RoutedEventArgs e) {
@@ -55,7 +57,8 @@ namespace SLLS_Screen {
                                 Client = null;
                             });
                         },
-                        Time
+                        Time,
+                        Projector
                     );
                 } else {
                     ListboxLog("Unable Port Number");

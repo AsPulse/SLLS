@@ -11,9 +11,17 @@ using SLLS_Common;
 using System.Net.Http;
 using SLLS_Common.ManagedPayloads.DeviceId;
 using SLLS_Recorder.Recording;
+using System.Windows.Media.Imaging;
+using System.Windows.Media;
+using System.Diagnostics;
 
 namespace SLLS_Screen {
     internal class Client {
+
+
+        public readonly int width = 1920;
+        public readonly int height = 1080;
+        public readonly int fps = 24;
 
         public delegate void DisposeEventHandler(object sender);
         public event DisposeEventHandler? OnDispose;
@@ -28,14 +36,22 @@ namespace SLLS_Screen {
         public Action<string>? Logger;
         readonly ITimeProvider Time;
 
+        public readonly Projector Projector;
+        private readonly WriteableBitmap bmp;
 
-        public Client(string host, int port, Action<string> logger, Action<object> initialDisposer, ITimeProvider time) {
+        public Client(string host, int port, Action<string> logger, Action<object> initialDisposer, ITimeProvider time, Projector projector) {
             Logger = logger;
             Time = time;
+            Projector = projector;
 
             if (initialDisposer != null) {
                 OnDispose += o => initialDisposer.Invoke(o);
             }
+
+            bmp = new WriteableBitmap(width, height, 96, 96, PixelFormats.Bgr24, null);
+            Projector.Screen.Source = bmp;
+            _ = ProjectorLoop();
+
             try {
                 IPEndPoint localEndPoint = new(IPAddress.Parse("127.0.0.1"), 0);
                 IPEndPoint remoteEndPoint = new(Dns.GetHostEntry(host).AddressList.First(v => v.AddressFamily == AddressFamily.InterNetwork), port);
@@ -58,6 +74,21 @@ namespace SLLS_Screen {
                 logger?.Invoke("Error: Client cannot connect to server because of Unknown Reason.");
                 Dispose();
             }
+        }
+
+        private Task ProjectorLoop() {
+            return Task.Run(async () => {
+                while (!Disposed) {
+                    long time = Time.Now();
+                    Chunk? chunk = Chunks.OrderByDescending(x => x.id).FirstOrDefault(x => x.id <= time && time <= x.id + x.length && x.Mat != null);
+                    if (chunk == null) continue;
+                    int frame = (int)Math.Floor((time - chunk.id) / 1000.0 * fps);
+                    await Task.Run(async () => {
+                        chunk.SeekBitmap(frame, bmp);
+                        await Task.Delay((int)(1000.0 / fps));
+                    });
+                }
+            });
         }
 
         private void Receive(ManagedPayload payload) {
@@ -89,9 +120,12 @@ namespace SLLS_Screen {
         }
 
         private void DisposeChunk() {
-            long now = Time.Now();
-            Chunks.Where(v => now > v.id + v.length + 5000).ToList().ForEach(v => {
-                Chunks.Remove(v);
+            Task.Run(() => {
+                long now = Time.Now();
+                Chunks.Where(v => now > v.id + v.length + 5000).ToList().ForEach(v => {
+                    v.Dispose();
+                    Chunks.Remove(v);
+                });
             });
         }
 

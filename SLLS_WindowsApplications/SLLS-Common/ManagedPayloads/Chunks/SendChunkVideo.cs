@@ -59,7 +59,7 @@ namespace SLLS_Common.ManagedPayloads.DeviceId {
 
         public override string ToLogStringReceive()
         {
-            return LogStringReceive($"SEND_CHUNK_VIDEO: {ChunkId}");
+            return LogStringReceive($"SEND_CHUNK_VIDEO: {ChunkId} {(Available ? "(available)" : "(unavailable)")}");
         }
     }
 }

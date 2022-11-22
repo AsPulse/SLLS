@@ -110,6 +110,7 @@ namespace SLLS_Recorder.Recording {
                     long length = sr.Length;
                     byte[] bytes = new byte[length];
                     sr.Read(bytes, 0, (int)length);
+                    sr.Close();
                     chunk = new Chunk((long)Id, bytes, (int)Math.Floor(AppendedFrames * 1000.0 / camera.fps));
                 }
                 File.Delete(OutputPath);
