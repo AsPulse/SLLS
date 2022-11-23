@@ -52,35 +52,39 @@ namespace SLLS_Screen {
             Projector.Screen.Source = bmp;
             _ = ProjectorLoop();
 
-            try {
-                IPEndPoint localEndPoint = new(IPAddress.Parse("127.0.0.1"), 0);
-                IPEndPoint remoteEndPoint = new(Dns.GetHostEntry(host).AddressList.First(v => v.AddressFamily == AddressFamily.InterNetwork), port);
+            Task.Run(() => {
+                try {
+                    IPEndPoint localEndPoint = new(IPAddress.Any, 0);
+                    IPEndPoint remoteEndPoint = new(Dns.GetHostEntry(host).AddressList.First(v => v.AddressFamily == AddressFamily.InterNetwork), port);
 
-                client = new TcpClient(localEndPoint);
-                client.Connect(remoteEndPoint);
+                    client = new TcpClient(localEndPoint) {
+                        NoDelay = true
+                    };
+                    client.Connect(remoteEndPoint);
 
-                Logger?.Invoke($"<-- Connected to Server");
+                    Logger?.Invoke($"<-- Connected to Server");
 
-                TCPPayload payload = new(client);
-                client.Client.BeginReceive(payload.Data, 0, payload.Data.Length, SocketFlags.None, ReceiveCallback, payload);
+                    TCPPayload payload = new(client);
+                    client.Client.BeginReceive(payload.Data, 0, payload.Data.Length, SocketFlags.None, ReceiveCallback, payload);
 
-                SendToServer(
-                    new RequestDeviceId() {
-                        DeviceId = OwnDeviceId,
-                    }
-                );
+                    SendToServer(
+                        new RequestDeviceId() {
+                            DeviceId = OwnDeviceId,
+                        }
+                    );
 
-            } catch {
-                logger?.Invoke("Error: Client cannot connect to server because of Unknown Reason.");
-                Dispose();
-            }
+                } catch {
+                    logger?.Invoke("Error: Client cannot connect to server because of Unknown Reason.");
+                    Dispose();
+                }
+            });
         }
 
         private Task ProjectorLoop() {
             return Task.Run(async () => {
                 while (!Disposed) {
                     long time = Time.Now();
-                    Chunk? chunk = Chunks.OrderByDescending(x => x.id).FirstOrDefault(x => x.id <= time && time <= x.id + x.length && x.Mat != null);
+                    Chunk? chunk = Chunks.OrderByDescending(x => x.id).FirstOrDefault(x => x.id <= time && time <= x.id + x.length && x.ready);
                     if (chunk == null) continue;
                     int frame = (int)Math.Floor((time - chunk.id) / 1000.0 * fps);
                     await Task.Run(async () => {

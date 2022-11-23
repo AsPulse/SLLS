@@ -14,7 +14,7 @@
         </Grid.RowDefinitions>
         <Label Content="SLLS - Screen" HorizontalAlignment="Center" FontWeight="Bold" />
         <StackPanel Grid.Row="1" Margin="5,10,5,5">
-            <Label Content="- Recoder Endpoint -" Margin="0,0,3,0" HorizontalAlignment="Center"></Label>
+            <Label Content="- Recorder Endpoint -" Margin="0,0,3,0" HorizontalAlignment="Center"></Label>
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition/>
