@@ -83,7 +83,7 @@ namespace SLLS_Screen {
                 isCalledQuit = true;
                 await (Client?.Dispose() ?? Task.CompletedTask);
                 isCleanuped = true;
-                Dispatcher.Invoke(() => Close());
+                Dispatcher.Invoke(() => Application.Current.Shutdown());
             });
         }
 

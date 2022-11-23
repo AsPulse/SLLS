@@ -7,7 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SLLS-Recorder", "SLLS-Recor
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SLLS-Common", "SLLS-Common\SLLS-Common.csproj", "{24CAD3AC-6173-482B-9F52-CA2200C01E54}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SLLS-Screen", "SLLS-Screen\SLLS-Screen.csproj", "{5931D5B3-A3F4-4C86-A5BC-0CE408C79D74}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SLLS-Screen", "SLLS-Screen\SLLS-Screen.csproj", "{5931D5B3-A3F4-4C86-A5BC-0CE408C79D74}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
