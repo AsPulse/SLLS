@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+
 namespace SLLS_Common.ManagedPayloads.DeviceId {
     public class SendChunkVideo : ManagedPayload
     {
@@ -9,6 +11,7 @@ namespace SLLS_Common.ManagedPayloads.DeviceId {
         public long ChunkId { get; set; }
         public int Length { get; set; }
         public byte[]? Data { get; set; }
+        public byte[]? Hashes { get; set; }
 
         public static SendChunkVideo? Parse(TCPPayload payload)
         {
@@ -26,35 +29,37 @@ namespace SLLS_Common.ManagedPayloads.DeviceId {
 
             }
 
-            int payloadLen = BitConverter.ToInt32(payload.Data.AsSpan()[12..16]);
+            int payloadLen = BitConverter.ToInt32(payload.Data.AsSpan()[44..48]);
             return new(payload) {
                 DeviceId = payload.Data[1],
                 Available = true,
                 ChunkId = chunkId,
+                Hashes = payload.Data.AsSpan()[12..32].ToArray(),
                 Length = payloadLen,
-                Data = payload.Data.AsSpan()[16..(16 + payloadLen)].ToArray(),
+                Data = payload.Data.AsSpan()[48..(48 + payloadLen)].ToArray(),
             };
         }
 
         public override SendablePayload SendData(byte ToDeviceId)
         {
-            BytePacket packet = new();
+            BytePacket packet = new(); 
             packet.Append(new byte[] { ENDPOINT, DeviceId, ToDeviceId });
             packet.Append(ChunkId);
             if (Available && Data != null) {
+                Hashes ??= Hash.GetHash(Data);
                 packet.Append((byte)0x01);
+                packet.Append(Hashes);
                 packet.Append(Length);
                 packet.Append(Data);
 
             } else {
                 packet.Append((byte)0x00);
             }
-
             return new(
                 packet.ToPacket(),
                 ToDeviceId,
                 $"SEND_CHUNK_VIDEO: {ChunkId}"
-            );
+            );;
         }
 
         public override string ToLogStringReceive()

@@ -95,6 +95,17 @@ namespace SLLS_Screen {
             });
         }
 
+        private void RequestChunk(Chunk c, bool errored) {
+            SendToServer(
+                new DownloadChunkVideo() {
+                    DeviceId = OwnDeviceId,
+                    ChunkId = c.id,
+                    Errored = errored,
+                }
+            );
+            c.StartDownload();
+        }
+
         private void Receive(ManagedPayload payload) {
             DisposeChunk();
             if (payload is AssignDeviceId assignDeviceId) {
@@ -104,22 +115,21 @@ namespace SLLS_Screen {
             if(payload is PushNewChunk pushNewChunk) {
                 Chunk c = new(pushNewChunk.ChunkId, pushNewChunk.ChunkLength);
                 Chunks.Add(c);
-                SendToServer(
-                    new DownloadChunkVideo() {
-                        DeviceId = OwnDeviceId,
-                        ChunkId = c.id,
-                    }
-                );
-                c.StartDownload();
+                RequestChunk(c, false);
                 return;
             }
             if(payload is SendChunkVideo sendChunkVideo) {
                 Chunk? c = Chunks.FirstOrDefault(c => c.id == sendChunkVideo.ChunkId);
-                if (!sendChunkVideo.Available || c == null || sendChunkVideo.Data == null) {
+                if (!sendChunkVideo.Available || c == null || sendChunkVideo.Data == null || sendChunkVideo.Hashes == null) {
                     Chunks.RemoveAll(c => c.id == sendChunkVideo.ChunkId);
                     return;
                 }
+                if(!Hash.GetHash(sendChunkVideo.Data).SequenceEqual(sendChunkVideo.Hashes)) {
+                    RequestChunk(c, true);
+                    return;
+                };
                 c.Ready(sendChunkVideo.Data);
+                return;
             }
         }
 

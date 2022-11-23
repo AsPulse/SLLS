@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
 using System.Windows.Threading;
 using DirectShowLib;
 using SLLS_Recorder.Recording;
@@ -111,7 +113,13 @@ namespace SLLS_Recorder {
         }
 
         public void ListboxLog(string content) {
-            Logger.Items.Insert(0, content);
+            ListBoxItem item = new() {
+                Content = Content
+            };
+            if (content.Contains("[WARN]")) {
+                item.Background = new SolidColorBrush(Color.FromRgb(0xff, 0x40, 0x91));
+            }
+            Logger.Items.Insert(0, item);
         }
 
         private void ListenControl_Click(object sender, RoutedEventArgs e) {

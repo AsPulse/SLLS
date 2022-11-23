@@ -66,6 +66,7 @@ namespace SLLS_Recorder.Streaming {
                         ChunkId = target,
                         Length = c.size,
                         Data = c.data,
+                        Hashes = c.hash,
                     },
                     payload
                 );
