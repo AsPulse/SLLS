@@ -34,7 +34,7 @@ namespace SLLS_Common.ManagedPayloads.DeviceId {
                 DeviceId = payload.Data[1],
                 Available = true,
                 ChunkId = chunkId,
-                Hashes = payload.Data.AsSpan()[12..32].ToArray(),
+                Hashes = payload.Data.AsSpan()[12..44].ToArray(),
                 Length = payloadLen,
                 Data = payload.Data.AsSpan()[48..(48 + payloadLen)].ToArray(),
             };

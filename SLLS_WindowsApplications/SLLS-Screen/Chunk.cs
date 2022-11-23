@@ -14,8 +14,8 @@ using OpenCvSharp.WpfExtensions;
 namespace SLLS_Recorder.Recording {
     internal class Chunk {
 
-        public long id;
-        public int length;
+        public readonly long id;
+        public readonly int length;
 
         readonly Stopwatch sw = new();
         long? TimeToFetch = null;
@@ -63,7 +63,6 @@ namespace SLLS_Recorder.Recording {
                 ready = true;
                 TimeToFetch = sw.ElapsedMilliseconds;
                 Debug.WriteLine($"Id: {id}, Size: {bytes.Length}, Time: {TimeToFetch}");
-
             });
         }
 

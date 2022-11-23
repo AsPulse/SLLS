@@ -103,7 +103,7 @@ namespace SLLS_Screen {
                     Errored = errored,
                 }
             );
-            c.StartDownload();
+            if(!errored) c.StartDownload();
         }
 
         private void Receive(ManagedPayload payload) {
@@ -121,7 +121,10 @@ namespace SLLS_Screen {
             if(payload is SendChunkVideo sendChunkVideo) {
                 Chunk? c = Chunks.FirstOrDefault(c => c.id == sendChunkVideo.ChunkId);
                 if (!sendChunkVideo.Available || c == null || sendChunkVideo.Data == null || sendChunkVideo.Hashes == null) {
-                    Chunks.RemoveAll(c => c.id == sendChunkVideo.ChunkId);
+                    Chunks.Where(c => c.id == sendChunkVideo.ChunkId).ToList().ForEach(c => {
+                        Chunks.Remove(c);
+                        c.Dispose();
+                    });
                     return;
                 }
                 if(!Hash.GetHash(sendChunkVideo.Data).SequenceEqual(sendChunkVideo.Hashes)) {
@@ -137,8 +140,8 @@ namespace SLLS_Screen {
             Task.Run(() => {
                 long now = Time.Now();
                 Chunks.Where(v => now > v.id + v.length + 5000).ToList().ForEach(v => {
-                    v.Dispose();
                     Chunks.Remove(v);
+                    v.Dispose();
                 });
             });
         }
@@ -154,13 +157,15 @@ namespace SLLS_Screen {
                         return;
                     }
 
-                    //Receive Process
-                    payload.MarkReceived(Time);
-                    ManagedPayload? parsed = payload.Parse();
-                    if (parsed != null) {
-                        Logger.Log(parsed.ToLogStringReceive());
-                        Receive(parsed);
-                    }
+                    Task.Run(() => {
+                        //Receive Process
+                        payload.MarkReceived(Time);
+                        ManagedPayload? parsed = payload.Parse();
+                        if (parsed != null) {
+                            Logger.Log(parsed.ToLogStringReceive());
+                            Receive(parsed);
+                        }
+                    });
 
                     TCPPayload nextPayload = new(payload.Client);
                     payload.Client.Client.BeginReceive(nextPayload.Data, 0, nextPayload.Data.Length, SocketFlags.None, ReceiveCallback, nextPayload);

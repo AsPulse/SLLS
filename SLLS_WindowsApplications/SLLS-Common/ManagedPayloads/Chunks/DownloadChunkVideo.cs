@@ -30,7 +30,7 @@ namespace SLLS_Common.ManagedPayloads.DeviceId {
             return new(
                 packet.ToPacket(),
                 ToDeviceId,
-                $"{(Errored ? "[WARN] HASH_CONFLICTED # " : "")}DOWNLOAD_CHUNK_VIDEO: {ChunkId}",
+                $"{(Errored ? "HASH_CONFLICTED # " : "")}DOWNLOAD_CHUNK_VIDEO: {ChunkId}",
                 Errored ? LOG_SEVERITY.WARN : LOG_SEVERITY.INFO
             );
         }
