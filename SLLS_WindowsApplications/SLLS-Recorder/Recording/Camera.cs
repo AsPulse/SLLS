@@ -37,7 +37,7 @@ namespace SLLS_Recorder.Recording {
         public readonly int width = 1920;
         public readonly int height = 1080;
         public readonly int fps = 24;
-        public readonly int latency = (240 / 24) * 1000 * 3;
+        public readonly int latency = (240 / 24) * 1000 * 2;
 
         public RecordingStatus status = RecordingStatus.READY;
 

@@ -51,6 +51,7 @@ namespace SLLS_Recorder.Streaming {
                 if (c == null) {
                     Reply(
                         new SendChunkVideo() {
+                            DeviceId = ManagedPayload.SERVER_DEVICEID,
                             Available = false,
                             ChunkId = target
                         },
@@ -60,6 +61,7 @@ namespace SLLS_Recorder.Streaming {
                 }
                 Reply(
                     new SendChunkVideo() {
+                        DeviceId = ManagedPayload.SERVER_DEVICEID,
                         Available = true,
                         ChunkId = target,
                         Length = c.size,
