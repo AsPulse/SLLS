@@ -33,7 +33,7 @@ namespace SLLS_Common.ManagedPayloads.DeviceId {
             );
         }
 
-        public override string ToLogStringReceive()
+        public override LogObject ToLogStringReceive()
         {
             return LogStringReceive($"PUSH_NEW_CHUNK: {ChunkId} (Length {ChunkLength})");
         }

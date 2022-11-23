@@ -33,13 +33,13 @@ namespace SLLS_Screen {
         public List<Chunk> Chunks = new();
         private byte OwnDeviceId = 0xFF;
 
-        public Action<string>? Logger;
+        public Logger Logger;
         readonly ITimeProvider Time;
 
         public readonly Projector Projector;
         private readonly WriteableBitmap bmp;
 
-        public Client(string host, int port, Action<string> logger, Action<object> initialDisposer, ITimeProvider time, Projector projector) {
+        public Client(string host, int port, Logger logger, Action<object> initialDisposer, ITimeProvider time, Projector projector) {
             Logger = logger;
             Time = time;
             Projector = projector;
@@ -62,7 +62,7 @@ namespace SLLS_Screen {
                     };
                     client.Connect(remoteEndPoint);
 
-                    Logger?.Invoke($"<-- Connected to Server");
+                    Logger.Info($"<-- Connected to Server");
 
                     TCPPayload payload = new(client);
                     client.Client.BeginReceive(payload.Data, 0, payload.Data.Length, SocketFlags.None, ReceiveCallback, payload);
@@ -74,7 +74,7 @@ namespace SLLS_Screen {
                     );
 
                 } catch {
-                    logger?.Invoke("Error: Client cannot connect to server because of Unknown Reason.");
+                    logger.Error("Client cannot connect to server because of Unknown Reason.");
                     Dispose();
                 }
             });
@@ -95,6 +95,17 @@ namespace SLLS_Screen {
             });
         }
 
+        private void RequestChunk(Chunk c, bool errored) {
+            SendToServer(
+                new DownloadChunkVideo() {
+                    DeviceId = OwnDeviceId,
+                    ChunkId = c.id,
+                    Errored = errored,
+                }
+            );
+            if(!errored) c.StartDownload();
+        }
+
         private void Receive(ManagedPayload payload) {
             DisposeChunk();
             if (payload is AssignDeviceId assignDeviceId) {
@@ -104,22 +115,24 @@ namespace SLLS_Screen {
             if(payload is PushNewChunk pushNewChunk) {
                 Chunk c = new(pushNewChunk.ChunkId, pushNewChunk.ChunkLength);
                 Chunks.Add(c);
-                SendToServer(
-                    new DownloadChunkVideo() {
-                        DeviceId = OwnDeviceId,
-                        ChunkId = c.id,
-                    }
-                );
-                c.StartDownload();
+                RequestChunk(c, false);
                 return;
             }
             if(payload is SendChunkVideo sendChunkVideo) {
                 Chunk? c = Chunks.FirstOrDefault(c => c.id == sendChunkVideo.ChunkId);
-                if (!sendChunkVideo.Available || c == null || sendChunkVideo.Data == null) {
-                    Chunks.RemoveAll(c => c.id == sendChunkVideo.ChunkId);
+                if (!sendChunkVideo.Available || c == null || sendChunkVideo.Data == null || sendChunkVideo.Hashes == null) {
+                    Chunks.Where(c => c.id == sendChunkVideo.ChunkId).ToList().ForEach(c => {
+                        Chunks.Remove(c);
+                        c.Dispose();
+                    });
                     return;
                 }
+                if(!Hash.GetHash(sendChunkVideo.Data).SequenceEqual(sendChunkVideo.Hashes)) {
+                    RequestChunk(c, true);
+                    return;
+                };
                 c.Ready(sendChunkVideo.Data);
+                return;
             }
         }
 
@@ -127,8 +140,8 @@ namespace SLLS_Screen {
             Task.Run(() => {
                 long now = Time.Now();
                 Chunks.Where(v => now > v.id + v.length + 5000).ToList().ForEach(v => {
-                    v.Dispose();
                     Chunks.Remove(v);
+                    v.Dispose();
                 });
             });
         }
@@ -140,17 +153,19 @@ namespace SLLS_Screen {
                 if (result.AsyncState is TCPPayload payload) {
                     int length = payload.Client.Client.EndReceive(result);
                     if (length <= 0) {
-                        Logger?.Invoke($"--> Disconnected from Server");
+                        Logger.Info($"--> Disconnected from Server");
                         return;
                     }
 
-                    //Receive Process
-                    payload.MarkReceived(Time);
-                    ManagedPayload? parsed = payload.Parse();
-                    if (parsed != null) {
-                        Logger?.Invoke(parsed.ToLogStringReceive());
-                        Receive(parsed);
-                    }
+                    Task.Run(() => {
+                        //Receive Process
+                        payload.MarkReceived(Time);
+                        ManagedPayload? parsed = payload.Parse();
+                        if (parsed != null) {
+                            Logger.Log(parsed.ToLogStringReceive());
+                            Receive(parsed);
+                        }
+                    });
 
                     TCPPayload nextPayload = new(payload.Client);
                     payload.Client.Client.BeginReceive(nextPayload.Data, 0, nextPayload.Data.Length, SocketFlags.None, ReceiveCallback, nextPayload);
@@ -162,7 +177,7 @@ namespace SLLS_Screen {
         private void Send(byte ToDeviceId, ManagedPayload payload, TcpClient c) {
             SendablePayload sendablePayload = payload.SendData(ToDeviceId);
             c.Client.Send(sendablePayload.Data);
-            Logger?.Invoke(sendablePayload.Log);
+            Logger.Log(sendablePayload.Log);
 
         }
 
@@ -180,7 +195,7 @@ namespace SLLS_Screen {
             client = null;
             return Task.Run(() => {                
                 OnDispose?.Invoke(this);
-                Logger?.Invoke("Client disconnected.");
+                Logger.Info("Client disconnected.");
             });
         }
 

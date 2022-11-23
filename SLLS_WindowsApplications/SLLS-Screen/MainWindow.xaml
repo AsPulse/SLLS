@@ -3,9 +3,10 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:SLLS_Screen"
+        xmlns:slls_common="clr-namespace:SLLS_Common;assembly=SLLS-Common"
         mc:Ignorable="d"
         Title="SLLS-Screen" Height="450" Width="800" Closing="Window_Closing">
+
     <Grid Margin="5,5,5,5" Grid.Row="1">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -28,6 +29,6 @@
                 <Button x:Name="Connect" Grid.Column="3" Padding="12,4,12,4" Margin="10,0,0,0" Click="Connect_Click">Connect</Button>
             </Grid>
         </StackPanel>
-        <ListBox x:Name="Logger" Margin="5,20,5,5" Grid.Row="2"/>
+        <slls_common:LogList x:Name="logView" Margin="5,20,5,5" Grid.Row="2" />
     </Grid>
 </Window>
