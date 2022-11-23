@@ -13,6 +13,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Media.Media3D;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using SLLS_Common;
 using SLLS_Recorder;
 
 namespace SLLS_Screen {
@@ -24,6 +25,7 @@ namespace SLLS_Screen {
         readonly ClockTimeProvider Time = new();
         Client? Client = null;
 
+        readonly Logger Logger = new();
 
         private bool isCalledQuit = false;
         private bool isCleanuped = false;
@@ -31,6 +33,7 @@ namespace SLLS_Screen {
 
         public MainWindow() {
             InitializeComponent();
+            logView.SetItemSource(Logger.source);
             Projector = new();
             Projector.Show();
         }
@@ -46,9 +49,7 @@ namespace SLLS_Screen {
                     Client = new Client(
                         Host.Text,
                         port,
-                        s => {
-                            Dispatcher.Invoke(() => ListboxLog(s));
-                        },
+                        Logger,
                         _ => {
                             Dispatcher.Invoke(() => {
                                 Connect.Content = "Connect";
@@ -61,7 +62,7 @@ namespace SLLS_Screen {
                         Projector
                     );
                 } else {
-                    ListboxLog("Unable Port Number");
+                    Logger.Error("Unable Port Number");
                 }
             } else {
                 Client.Dispose();
@@ -72,10 +73,6 @@ namespace SLLS_Screen {
             if (isCleanuped) return;
             e.Cancel = true;
             if (!isCalledQuit) Quit();
-        }
-
-        public void ListboxLog(string content) {
-            Logger.Items.Insert(0, content);
         }
 
         private void Quit() {

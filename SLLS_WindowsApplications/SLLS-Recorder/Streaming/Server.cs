@@ -23,7 +23,7 @@ namespace SLLS_Recorder.Streaming {
 
         private bool Disposed = false;
 
-        public Action<string>? Logger;
+        public Logger Logger;
 
         public int Port { get; }
 
@@ -74,7 +74,7 @@ namespace SLLS_Recorder.Streaming {
             }
         }
 
-        public Server(int port, Action<string> logger, Action<object> initialDisposer, Camera camera, ClockTimeProvider time) {
+        public Server(int port, Logger logger, Action<object> initialDisposer, Camera camera, ClockTimeProvider time) {
             Logger = logger;
             TargetCamera = camera;
             Port = port;
@@ -89,10 +89,10 @@ namespace SLLS_Recorder.Streaming {
                 TargetCamera.NewChunkReleased += NewChunk;
                 AsyncAcceptWaitLoop();
             } catch (SocketException ex) when (ex.SocketErrorCode == SocketError.AddressAlreadyInUse) {
-                logger?.Invoke("Error: Address is already in use!");
+                logger.Error("Address is already in use!");
                 Dispose();
             } catch {
-                logger?.Invoke("Error: Server cannot start because of Unknown Reason.");
+                logger.Error("Server cannot start because of Unknown Reason.");
                 Dispose();
             }
             Time = time;
@@ -117,13 +117,13 @@ namespace SLLS_Recorder.Streaming {
         }
 
         private Task AsyncAcceptWaitLoop() {
-            Logger?.Invoke($"Server Listening on TCP/{Port}...");
+            Logger.Info($"Server Listening on TCP/{Port}...");
             return Task.Run(() => {
                 while (IsActive.Invoke()) {
                     try {
                         Listener?.BeginAcceptTcpClient(AcceptCallback, null).AsyncWaitHandle.WaitOne(-1);
                     } catch {
-                        Logger?.Invoke("Error: cannot accept new connection.");
+                        Logger.Error("cannot accept new connection.");
                     }
                 }
             });
@@ -133,7 +133,7 @@ namespace SLLS_Recorder.Streaming {
             if (Listener == null || !IsActive.Invoke()) return;
             try {
                 TcpClient tcpClient = Listener.EndAcceptTcpClient(result);
-                Logger?.Invoke($"--> New Connection {tcpClient.Client.RemoteEndPoint}");
+                Logger.Info($"--> New Connection {tcpClient.Client.RemoteEndPoint}");
                 Clients.Add(tcpClient);
 
                 TCPPayload payload = new(tcpClient);
@@ -148,7 +148,7 @@ namespace SLLS_Recorder.Streaming {
                     int length = payload.Client.Client.EndReceive(result);
                     if (length <= 0) {
                         SLLSClients.Release(payload.Client);
-                        Logger?.Invoke($"--> Disconnected {payload.Client.Client.RemoteEndPoint}");
+                        Logger.Info($"--> Disconnected {payload.Client.Client.RemoteEndPoint}");
                         Clients.Remove(payload.Client);
                         return;
                     }
@@ -157,7 +157,7 @@ namespace SLLS_Recorder.Streaming {
                     payload.MarkReceived(Time);
                     ManagedPayload? parsed = payload.Parse();
                     if (parsed != null) {
-                        Logger?.Invoke(parsed.ToLogStringReceive());
+                        Logger.Log(parsed.ToLogStringReceive());
                         Receive(parsed);
                     }
 
@@ -172,7 +172,7 @@ namespace SLLS_Recorder.Streaming {
         private void Send(byte ToDeviceId, ManagedPayload payload, TcpClient c) {
             SendablePayload sendablePayload = payload.SendData(ToDeviceId);
             c.Client.Send(sendablePayload.Data);
-            Logger?.Invoke(sendablePayload.Log);
+            Logger.Log(sendablePayload.Log);
 
         }
 
@@ -194,13 +194,13 @@ namespace SLLS_Recorder.Streaming {
                 Listener?.Stop();
                 lock (Clients.SyncRoot) {
                     foreach (TcpClient c in Clients) {
-                        Logger?.Invoke($"<-- Socket Close {c.Client.RemoteEndPoint}");
+                        Logger.Info($"<-- Socket Close {c.Client.RemoteEndPoint}");
                         SLLSClients.Release(c);
                         c.Client.Close();
                     }
                 }
                 OnDispose?.Invoke(this);
-                Logger?.Invoke("Listener Stopped.");
+                Logger.Info("Listener Stopped.");
             });
         }
     }

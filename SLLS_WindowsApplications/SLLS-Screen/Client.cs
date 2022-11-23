@@ -33,13 +33,13 @@ namespace SLLS_Screen {
         public List<Chunk> Chunks = new();
         private byte OwnDeviceId = 0xFF;
 
-        public Action<string>? Logger;
+        public Logger Logger;
         readonly ITimeProvider Time;
 
         public readonly Projector Projector;
         private readonly WriteableBitmap bmp;
 
-        public Client(string host, int port, Action<string> logger, Action<object> initialDisposer, ITimeProvider time, Projector projector) {
+        public Client(string host, int port, Logger logger, Action<object> initialDisposer, ITimeProvider time, Projector projector) {
             Logger = logger;
             Time = time;
             Projector = projector;
@@ -62,7 +62,7 @@ namespace SLLS_Screen {
                     };
                     client.Connect(remoteEndPoint);
 
-                    Logger?.Invoke($"<-- Connected to Server");
+                    Logger.Info($"<-- Connected to Server");
 
                     TCPPayload payload = new(client);
                     client.Client.BeginReceive(payload.Data, 0, payload.Data.Length, SocketFlags.None, ReceiveCallback, payload);
@@ -74,7 +74,7 @@ namespace SLLS_Screen {
                     );
 
                 } catch {
-                    logger?.Invoke("Error: Client cannot connect to server because of Unknown Reason.");
+                    logger.Error("Client cannot connect to server because of Unknown Reason.");
                     Dispose();
                 }
             });
@@ -150,7 +150,7 @@ namespace SLLS_Screen {
                 if (result.AsyncState is TCPPayload payload) {
                     int length = payload.Client.Client.EndReceive(result);
                     if (length <= 0) {
-                        Logger?.Invoke($"--> Disconnected from Server");
+                        Logger.Info($"--> Disconnected from Server");
                         return;
                     }
 
@@ -158,7 +158,7 @@ namespace SLLS_Screen {
                     payload.MarkReceived(Time);
                     ManagedPayload? parsed = payload.Parse();
                     if (parsed != null) {
-                        Logger?.Invoke(parsed.ToLogStringReceive());
+                        Logger.Log(parsed.ToLogStringReceive());
                         Receive(parsed);
                     }
 
@@ -172,7 +172,7 @@ namespace SLLS_Screen {
         private void Send(byte ToDeviceId, ManagedPayload payload, TcpClient c) {
             SendablePayload sendablePayload = payload.SendData(ToDeviceId);
             c.Client.Send(sendablePayload.Data);
-            Logger?.Invoke(sendablePayload.Log);
+            Logger.Log(sendablePayload.Log);
 
         }
 
@@ -190,7 +190,7 @@ namespace SLLS_Screen {
             client = null;
             return Task.Run(() => {                
                 OnDispose?.Invoke(this);
-                Logger?.Invoke("Client disconnected.");
+                Logger.Info("Client disconnected.");
             });
         }
 

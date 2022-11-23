@@ -23,9 +23,9 @@ namespace SLLS_Common.ManagedPayloads.DeviceId {
             );
         }
 
-        public override string ToLogStringReceive()
+        public override LogObject ToLogStringReceive()
         {
-            return $"--> 0x{DeviceId:X2} REQUEST_DEVICEID";
+            return new() { Content = $"--> 0x{DeviceId:X2} REQUEST_DEVICEID" };
         }
     }
 }
